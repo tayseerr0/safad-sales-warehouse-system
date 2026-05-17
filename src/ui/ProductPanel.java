@@ -22,16 +22,13 @@ public class ProductPanel extends JPanel {
     private final CategoryDAO categoryDAO = new CategoryDAO();
     private final BrandDAO brandDAO = new BrandDAO();
 
-    private JTextField productIdField;
-    private JTextField productNameField;
-    private JTextField descriptionField;
-    private JTextField priceField;
-    private JTextField searchField;
+    private JTextField productIdField, productNameField, descriptionField, priceField;
+    private JTextField nameFilterField, minPriceField, maxPriceField;
 
     private JComboBox<Category> categoryComboBox;
     private JComboBox<Brand> brandComboBox;
-    private JComboBox<Category> categoryFilterComboBox;
-    private JComboBox<Brand> brandFilterComboBox;
+    private JComboBox<Object> categoryFilterComboBox;
+    private JComboBox<Object> brandFilterComboBox;
 
     private JTable productTable;
     private DefaultTableModel productTableModel;
@@ -51,21 +48,17 @@ public class ProductPanel extends JPanel {
     private JPanel createHeaderPanel() {
         JPanel panel = new JPanel(new GridLayout(2, 1));
         panel.setBackground(UIStyle.BACKGROUND);
-
         panel.add(UIStyle.createTitle("Product Management"));
-        panel.add(UIStyle.createSubtitle("Manage SAFAD products and connect them to categories and brands."));
-
+        panel.add(UIStyle.createSubtitle("Manage products, combine filters, and choose visible columns."));
         return panel;
     }
 
     private JPanel createMainPanel() {
         JPanel panel = new JPanel(new BorderLayout(15, 15));
         panel.setBackground(UIStyle.BACKGROUND);
-
         panel.add(createFormPanel(), BorderLayout.NORTH);
         panel.add(createTablePanel(), BorderLayout.CENTER);
-        panel.add(createSearchFilterPanel(), BorderLayout.SOUTH);
-
+        panel.add(createFilterPanel(), BorderLayout.SOUTH);
         return panel;
     }
 
@@ -82,7 +75,6 @@ public class ProductPanel extends JPanel {
 
         productIdField = new JTextField();
         productIdField.setEditable(false);
-
         productNameField = new JTextField();
         descriptionField = new JTextField();
         priceField = new JTextField();
@@ -101,12 +93,10 @@ public class ProductPanel extends JPanel {
         formPanel.add(productIdField);
         formPanel.add(new JLabel("Product Name:"));
         formPanel.add(productNameField);
-
         formPanel.add(new JLabel("Description:"));
         formPanel.add(descriptionField);
         formPanel.add(new JLabel("Default Selling Price:"));
         formPanel.add(priceField);
-
         formPanel.add(new JLabel("Category:"));
         formPanel.add(categoryComboBox);
         formPanel.add(new JLabel("Brand:"));
@@ -150,105 +140,101 @@ public class ProductPanel extends JPanel {
     }
 
     private JPanel createTablePanel() {
-        JPanel panel = new JPanel(new BorderLayout());
+        JPanel panel = new JPanel(new BorderLayout(8, 8));
         panel.setBackground(UIStyle.PANEL_BACKGROUND);
         panel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(229, 231, 235)),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
 
-        String[] columns = {
-                "ID",
-                "Product Name",
-                "Description",
-                "Price",
-                "Category ID",
-                "Category",
-                "Brand ID",
-                "Brand"
-        };
+        String[] columns = {"ID", "Product Name", "Description", "Price", "Category ID", "Category", "Brand ID", "Brand"};
 
         productTableModel = TableUtil.createNonEditableTableModel(columns);
         productTable = new JTable(productTableModel);
         TableUtil.setupTable(productTable);
 
-        productTable.getSelectionModel().addListSelectionListener(e -> fillFormFromTable());
+        productTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) fillFormFromTable();
+        });
 
-        JScrollPane scrollPane = new JScrollPane(productTable);
-        panel.add(scrollPane, BorderLayout.CENTER);
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        topPanel.setBackground(UIStyle.PANEL_BACKGROUND);
+        topPanel.add(TableUtil.createColumnVisibilityButton(productTable, "Columns"));
+
+        panel.add(topPanel, BorderLayout.NORTH);
+        panel.add(new JScrollPane(productTable), BorderLayout.CENTER);
 
         return panel;
     }
 
-    private JPanel createSearchFilterPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 1, 8, 8));
-        panel.setBackground(UIStyle.PANEL_BACKGROUND);
-        panel.setBorder(BorderFactory.createCompoundBorder(
+    private JPanel createFilterPanel() {
+        JPanel wrapper = new JPanel(new BorderLayout(8, 8));
+        wrapper.setBackground(UIStyle.PANEL_BACKGROUND);
+        wrapper.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(229, 231, 235)),
                 BorderFactory.createEmptyBorder(12, 12, 12, 12)
         ));
 
-        JPanel searchPanel = new JPanel(new BorderLayout(8, 8));
-        searchPanel.setBackground(UIStyle.PANEL_BACKGROUND);
+        JLabel title = new JLabel("Advanced Filters");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 15));
 
-        searchField = new JTextField();
-        UIStyle.styleTextField(searchField);
-
-        JButton searchButton = new JButton("Search");
-        JButton showAllButton = new JButton("Show All");
-
-        UIStyle.stylePrimaryButton(searchButton);
-        UIStyle.stylePrimaryButton(showAllButton);
-
-        searchButton.addActionListener(e -> searchProducts());
-        showAllButton.addActionListener(e -> loadProducts());
-
-        JPanel searchButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        searchButtons.setBackground(UIStyle.PANEL_BACKGROUND);
-        searchButtons.add(searchButton);
-        searchButtons.add(showAllButton);
-
-        searchPanel.add(new JLabel("Search:"), BorderLayout.WEST);
-        searchPanel.add(searchField, BorderLayout.CENTER);
-        searchPanel.add(searchButtons, BorderLayout.EAST);
-
-        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel filterPanel = new JPanel(new GridLayout(2, 5, 10, 10));
         filterPanel.setBackground(UIStyle.PANEL_BACKGROUND);
 
+        nameFilterField = new JTextField();
+        minPriceField = new JTextField();
+        maxPriceField = new JTextField();
         categoryFilterComboBox = new JComboBox<>();
         brandFilterComboBox = new JComboBox<>();
 
+        UIStyle.styleTextField(nameFilterField);
+        UIStyle.styleTextField(minPriceField);
+        UIStyle.styleTextField(maxPriceField);
         UIStyle.styleComboBox(categoryFilterComboBox);
         UIStyle.styleComboBox(brandFilterComboBox);
 
-        JButton filterCategoryButton = new JButton("Filter Category");
-        JButton filterBrandButton = new JButton("Filter Brand");
-
-        UIStyle.stylePrimaryButton(filterCategoryButton);
-        UIStyle.stylePrimaryButton(filterBrandButton);
-
-        filterCategoryButton.addActionListener(e -> filterByCategory());
-        filterBrandButton.addActionListener(e -> filterByBrand());
-
+        filterPanel.add(new JLabel("Name/Keyword:"));
         filterPanel.add(new JLabel("Category:"));
-        filterPanel.add(categoryFilterComboBox);
-        filterPanel.add(filterCategoryButton);
-
-        filterPanel.add(Box.createHorizontalStrut(20));
-
         filterPanel.add(new JLabel("Brand:"));
+        filterPanel.add(new JLabel("Min Price:"));
+        filterPanel.add(new JLabel("Max Price:"));
+
+        filterPanel.add(nameFilterField);
+        filterPanel.add(categoryFilterComboBox);
         filterPanel.add(brandFilterComboBox);
-        filterPanel.add(filterBrandButton);
+        filterPanel.add(minPriceField);
+        filterPanel.add(maxPriceField);
 
-        panel.add(searchPanel);
-        panel.add(filterPanel);
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        buttonPanel.setBackground(UIStyle.PANEL_BACKGROUND);
 
-        return panel;
+        JButton applyButton = new JButton("Apply Filters");
+        JButton clearButton = new JButton("Clear Filters");
+        JButton showAllButton = new JButton("Show All");
+
+        UIStyle.stylePrimaryButton(applyButton);
+        UIStyle.stylePrimaryButton(clearButton);
+        UIStyle.stylePrimaryButton(showAllButton);
+
+        applyButton.addActionListener(e -> applyAdvancedFilters());
+        clearButton.addActionListener(e -> clearFilters());
+        showAllButton.addActionListener(e -> loadProducts());
+
+        buttonPanel.add(applyButton);
+        buttonPanel.add(clearButton);
+        buttonPanel.add(showAllButton);
+
+        wrapper.add(title, BorderLayout.NORTH);
+        wrapper.add(filterPanel, BorderLayout.CENTER);
+        wrapper.add(buttonPanel, BorderLayout.SOUTH);
+
+        return wrapper;
     }
 
     private void loadComboBoxes() {
         categoryComboBox.removeAllItems();
         categoryFilterComboBox.removeAllItems();
+        categoryFilterComboBox.addItem("All Categories");
 
         for (Category category : categoryDAO.getAllCategories()) {
             categoryComboBox.addItem(category);
@@ -257,6 +243,7 @@ public class ProductPanel extends JPanel {
 
         brandComboBox.removeAllItems();
         brandFilterComboBox.removeAllItems();
+        brandFilterComboBox.addItem("All Brands");
 
         for (Brand brand : brandDAO.getAllBrands()) {
             brandComboBox.addItem(brand);
@@ -286,13 +273,9 @@ public class ProductPanel extends JPanel {
     }
 
     private void addProduct() {
-        if (!validateProductInput()) {
-            return;
-        }
+        if (!validateProductInput()) return;
 
-        Product product = buildProductFromForm(false);
-
-        if (productDAO.addProduct(product)) {
+        if (productDAO.addProduct(buildProductFromForm(false))) {
             MessageUtil.showSuccess("Product added successfully.");
             clearForm();
             loadProducts();
@@ -307,13 +290,9 @@ public class ProductPanel extends JPanel {
             return;
         }
 
-        if (!validateProductInput()) {
-            return;
-        }
+        if (!validateProductInput()) return;
 
-        Product product = buildProductFromForm(true);
-
-        if (productDAO.updateProduct(product)) {
+        if (productDAO.updateProduct(buildProductFromForm(true))) {
             MessageUtil.showSuccess("Product updated successfully.");
             clearForm();
             loadProducts();
@@ -328,9 +307,7 @@ public class ProductPanel extends JPanel {
             return;
         }
 
-        if (!MessageUtil.confirm("Are you sure you want to delete this product?")) {
-            return;
-        }
+        if (!MessageUtil.confirm("Are you sure you want to delete this product?")) return;
 
         int productId = Integer.parseInt(productIdField.getText());
 
@@ -343,36 +320,53 @@ public class ProductPanel extends JPanel {
         }
     }
 
-    private void searchProducts() {
-        String keyword = searchField.getText().trim();
+    private void applyAdvancedFilters() {
+        String keyword = nameFilterField.getText().trim();
 
-        if (ValidationUtil.isEmpty(keyword)) {
-            loadProducts();
-        } else {
-            fillProductTable(productDAO.searchProducts(keyword));
+        Integer categoryId = null;
+        Object categoryObj = categoryFilterComboBox.getSelectedItem();
+        if (categoryObj instanceof Category) categoryId = ((Category) categoryObj).getCategoryId();
+
+        Integer brandId = null;
+        Object brandObj = brandFilterComboBox.getSelectedItem();
+        if (brandObj instanceof Brand) brandId = ((Brand) brandObj).getBrandId();
+
+        BigDecimal minPrice = null;
+        BigDecimal maxPrice = null;
+
+        if (!ValidationUtil.isEmpty(minPriceField.getText())) {
+            if (!ValidationUtil.isNonNegativeDecimal(minPriceField.getText())) {
+                MessageUtil.showError("Min price must be a valid non-negative number.");
+                return;
+            }
+            minPrice = new BigDecimal(minPriceField.getText().trim());
         }
-    }
 
-    private void filterByCategory() {
-        Category category = (Category) categoryFilterComboBox.getSelectedItem();
+        if (!ValidationUtil.isEmpty(maxPriceField.getText())) {
+            if (!ValidationUtil.isNonNegativeDecimal(maxPriceField.getText())) {
+                MessageUtil.showError("Max price must be a valid non-negative number.");
+                return;
+            }
+            maxPrice = new BigDecimal(maxPriceField.getText().trim());
+        }
 
-        if (category == null) {
-            MessageUtil.showWarning("Select a category first.");
+        if (minPrice != null && maxPrice != null && minPrice.compareTo(maxPrice) > 0) {
+            MessageUtil.showError("Min price cannot be greater than max price.");
             return;
         }
 
-        fillProductTable(productDAO.getProductsByCategory(category.getCategoryId()));
+        fillProductTable(productDAO.filterProducts(keyword, categoryId, brandId, minPrice, maxPrice));
     }
 
-    private void filterByBrand() {
-        Brand brand = (Brand) brandFilterComboBox.getSelectedItem();
+    private void clearFilters() {
+        nameFilterField.setText("");
+        minPriceField.setText("");
+        maxPriceField.setText("");
 
-        if (brand == null) {
-            MessageUtil.showWarning("Select a brand first.");
-            return;
-        }
+        if (categoryFilterComboBox.getItemCount() > 0) categoryFilterComboBox.setSelectedIndex(0);
+        if (brandFilterComboBox.getItemCount() > 0) brandFilterComboBox.setSelectedIndex(0);
 
-        fillProductTable(productDAO.getProductsByBrand(brand.getBrandId()));
+        loadProducts();
     }
 
     private boolean validateProductInput() {
@@ -411,19 +405,13 @@ public class ProductPanel extends JPanel {
                 selectedCategory.getCategoryId()
         );
 
-        if (includeId) {
-            product.setProductId(Integer.parseInt(productIdField.getText()));
-        }
-
+        if (includeId) product.setProductId(Integer.parseInt(productIdField.getText()));
         return product;
     }
 
     private void fillFormFromTable() {
         int selectedRow = productTable.getSelectedRow();
-
-        if (selectedRow == -1) {
-            return;
-        }
+        if (selectedRow == -1) return;
 
         int modelRow = productTable.convertRowIndexToModel(selectedRow);
 
@@ -441,8 +429,7 @@ public class ProductPanel extends JPanel {
 
     private void selectCategoryById(JComboBox<Category> comboBox, int categoryId) {
         for (int i = 0; i < comboBox.getItemCount(); i++) {
-            Category category = comboBox.getItemAt(i);
-            if (category.getCategoryId() == categoryId) {
+            if (comboBox.getItemAt(i).getCategoryId() == categoryId) {
                 comboBox.setSelectedIndex(i);
                 return;
             }
@@ -451,8 +438,7 @@ public class ProductPanel extends JPanel {
 
     private void selectBrandById(JComboBox<Brand> comboBox, int brandId) {
         for (int i = 0; i < comboBox.getItemCount(); i++) {
-            Brand brand = comboBox.getItemAt(i);
-            if (brand.getBrandId() == brandId) {
+            if (comboBox.getItemAt(i).getBrandId() == brandId) {
                 comboBox.setSelectedIndex(i);
                 return;
             }
@@ -465,13 +451,8 @@ public class ProductPanel extends JPanel {
         descriptionField.setText("");
         priceField.setText("");
 
-        if (categoryComboBox.getItemCount() > 0) {
-            categoryComboBox.setSelectedIndex(0);
-        }
-
-        if (brandComboBox.getItemCount() > 0) {
-            brandComboBox.setSelectedIndex(0);
-        }
+        if (categoryComboBox.getItemCount() > 0) categoryComboBox.setSelectedIndex(0);
+        if (brandComboBox.getItemCount() > 0) brandComboBox.setSelectedIndex(0);
 
         productTable.clearSelection();
     }

@@ -66,14 +66,20 @@ public class SupplierPanel extends JPanel {
         return panel;
     }
 
-    private JPanel createMainPanel() {
-        JPanel panel = new JPanel(new GridLayout(1, 2, 15, 15));
-        panel.setBackground(UIStyle.BACKGROUND);
+    private JSplitPane createMainPanel() {
+        JSplitPane splitPane = new JSplitPane(
+                JSplitPane.HORIZONTAL_SPLIT,
+                createSupplierManagementPanel(),
+                createSupplierProductPanel()
+        );
 
-        panel.add(createSupplierManagementPanel());
-        panel.add(createSupplierProductPanel());
+        splitPane.setResizeWeight(0.50);
+        splitPane.setOneTouchExpandable(true);
+        splitPane.setContinuousLayout(true);
+        splitPane.setDividerSize(8);
+        splitPane.setBorder(null);
 
-        return panel;
+        return splitPane;
     }
 
     private JPanel createSupplierManagementPanel() {

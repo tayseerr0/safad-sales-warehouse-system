@@ -3,6 +3,7 @@ package dao;
 import db.DBConnection;
 import model.Product;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,20 +79,7 @@ public class ProductDAO {
     }
 
     public Product getProductById(int productId) {
-        String sql = """
-                SELECT p.product_id,
-                       p.product_name,
-                       p.description,
-                       p.default_selling_price,
-                       p.brand_id,
-                       b.brand_name,
-                       p.category_id,
-                       c.category_name
-                FROM Product p
-                JOIN Brand b ON p.brand_id = b.brand_id
-                JOIN Category c ON p.category_id = c.category_id
-                WHERE p.product_id = ?
-                """;
+        String sql = baseProductQuery() + " WHERE p.product_id = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -112,159 +100,117 @@ public class ProductDAO {
     }
 
     public List<Product> getAllProducts() {
-        List<Product> products = new ArrayList<>();
-
-        String sql = """
-                SELECT p.product_id,
-                       p.product_name,
-                       p.description,
-                       p.default_selling_price,
-                       p.brand_id,
-                       b.brand_name,
-                       p.category_id,
-                       c.category_name
-                FROM Product p
-                JOIN Brand b ON p.brand_id = b.brand_id
-                JOIN Category c ON p.category_id = c.category_id
-                ORDER BY p.product_name
-                """;
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                products.add(mapJoinedResultSetToProduct(rs));
-            }
-
-        } catch (SQLException e) {
-            System.out.println("Error loading products: " + e.getMessage());
-        }
-
-        return products;
+        return filterProducts(null, null, null, null, null);
     }
 
     public List<Product> searchProducts(String keyword) {
-        List<Product> products = new ArrayList<>();
-
-        String sql = """
-                SELECT p.product_id,
-                       p.product_name,
-                       p.description,
-                       p.default_selling_price,
-                       p.brand_id,
-                       b.brand_name,
-                       p.category_id,
-                       c.category_name
-                FROM Product p
-                JOIN Brand b ON p.brand_id = b.brand_id
-                JOIN Category c ON p.category_id = c.category_id
-                WHERE p.product_name LIKE ?
-                   OR p.description LIKE ?
-                   OR b.brand_name LIKE ?
-                   OR c.category_name LIKE ?
-                ORDER BY p.product_name
-                """;
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            String searchValue = "%" + keyword + "%";
-
-            stmt.setString(1, searchValue);
-            stmt.setString(2, searchValue);
-            stmt.setString(3, searchValue);
-            stmt.setString(4, searchValue);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    products.add(mapJoinedResultSetToProduct(rs));
-                }
-            }
-
-        } catch (SQLException e) {
-            System.out.println("Error searching products: " + e.getMessage());
-        }
-
-        return products;
+        return filterProducts(keyword, null, null, null, null);
     }
 
     public List<Product> getProductsByCategory(int categoryId) {
-        List<Product> products = new ArrayList<>();
-
-        String sql = """
-                SELECT p.product_id,
-                       p.product_name,
-                       p.description,
-                       p.default_selling_price,
-                       p.brand_id,
-                       b.brand_name,
-                       p.category_id,
-                       c.category_name
-                FROM Product p
-                JOIN Brand b ON p.brand_id = b.brand_id
-                JOIN Category c ON p.category_id = c.category_id
-                WHERE p.category_id = ?
-                ORDER BY p.product_name
-                """;
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, categoryId);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    products.add(mapJoinedResultSetToProduct(rs));
-                }
-            }
-
-        } catch (SQLException e) {
-            System.out.println("Error filtering products by category: " + e.getMessage());
-        }
-
-        return products;
+        return filterProducts(null, categoryId, null, null, null);
     }
 
     public List<Product> getProductsByBrand(int brandId) {
-        List<Product> products = new ArrayList<>();
-
-        String sql = """
-                SELECT p.product_id,
-                       p.product_name,
-                       p.description,
-                       p.default_selling_price,
-                       p.brand_id,
-                       b.brand_name,
-                       p.category_id,
-                       c.category_name
-                FROM Product p
-                JOIN Brand b ON p.brand_id = b.brand_id
-                JOIN Category c ON p.category_id = c.category_id
-                WHERE p.brand_id = ?
-                ORDER BY p.product_name
-                """;
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, brandId);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    products.add(mapJoinedResultSetToProduct(rs));
-                }
-            }
-
-        } catch (SQLException e) {
-            System.out.println("Error filtering products by brand: " + e.getMessage());
-        }
-
-        return products;
+        return filterProducts(null, null, brandId, null, null);
     }
 
     public List<Product> getProductsWithCategoryAndBrand() {
         return getAllProducts();
+    }
+
+    public List<Product> filterProducts(String keyword,
+                                        Integer categoryId,
+                                        Integer brandId,
+                                        BigDecimal minPrice,
+                                        BigDecimal maxPrice) {
+        List<Product> products = new ArrayList<>();
+        List<Object> params = new ArrayList<>();
+
+        StringBuilder sql = new StringBuilder(baseProductQuery());
+        sql.append(" WHERE 1 = 1 ");
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            sql.append("""
+                    AND (
+                        p.product_name LIKE ?
+                        OR p.description LIKE ?
+                        OR b.brand_name LIKE ?
+                        OR c.category_name LIKE ?
+                    )
+                    """);
+
+            String searchValue = "%" + keyword.trim() + "%";
+            params.add(searchValue);
+            params.add(searchValue);
+            params.add(searchValue);
+            params.add(searchValue);
+        }
+
+        if (categoryId != null) {
+            sql.append(" AND p.category_id = ? ");
+            params.add(categoryId);
+        }
+
+        if (brandId != null) {
+            sql.append(" AND p.brand_id = ? ");
+            params.add(brandId);
+        }
+
+        if (minPrice != null) {
+            sql.append(" AND p.default_selling_price >= ? ");
+            params.add(minPrice);
+        }
+
+        if (maxPrice != null) {
+            sql.append(" AND p.default_selling_price <= ? ");
+            params.add(maxPrice);
+        }
+
+        sql.append(" ORDER BY p.product_name ");
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+
+            for (int i = 0; i < params.size(); i++) {
+                Object value = params.get(i);
+
+                if (value instanceof Integer) {
+                    stmt.setInt(i + 1, (Integer) value);
+                } else if (value instanceof BigDecimal) {
+                    stmt.setBigDecimal(i + 1, (BigDecimal) value);
+                } else {
+                    stmt.setString(i + 1, value.toString());
+                }
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    products.add(mapJoinedResultSetToProduct(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error filtering products: " + e.getMessage());
+        }
+
+        return products;
+    }
+
+    private String baseProductQuery() {
+        return """
+                SELECT p.product_id,
+                       p.product_name,
+                       p.description,
+                       p.default_selling_price,
+                       p.brand_id,
+                       b.brand_name,
+                       p.category_id,
+                       c.category_name
+                FROM Product p
+                JOIN Brand b ON p.brand_id = b.brand_id
+                JOIN Category c ON p.category_id = c.category_id
+                """;
     }
 
     private Product mapJoinedResultSetToProduct(ResultSet rs) throws SQLException {

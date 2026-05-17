@@ -34,12 +34,23 @@ public class CategoryBrandPanel extends JPanel {
     private DefaultTableModel brandTableModel;
 
     public CategoryBrandPanel() {
-        setLayout(new GridLayout(1, 2, 15, 15));
+        setLayout(new BorderLayout(15, 15));
         setBackground(UIStyle.BACKGROUND);
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        add(createCategoryPanel());
-        add(createBrandPanel());
+        JSplitPane splitPane = new JSplitPane(
+                JSplitPane.HORIZONTAL_SPLIT,
+                createCategoryPanel(),
+                createBrandPanel()
+        );
+
+        splitPane.setResizeWeight(0.50);
+        splitPane.setOneTouchExpandable(true);
+        splitPane.setContinuousLayout(true);
+        splitPane.setDividerSize(8);
+        splitPane.setBorder(null);
+
+        add(splitPane, BorderLayout.CENTER);
 
         loadCategories();
         loadBrands();

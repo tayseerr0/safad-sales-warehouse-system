@@ -31,6 +31,8 @@ public class PurchaseInvoicePanel extends JPanel {
     private final ProductDAO productDAO = new ProductDAO();
     private final PurchaseInvoiceDAO purchaseInvoiceDAO = new PurchaseInvoiceDAO();
 
+    private int editingInvoiceId = -1;
+
     private JComboBox<Supplier> supplierComboBox;
     private JComboBox<WarehouseOption> warehouseComboBox;
     private JTextField invoiceDateField;
@@ -48,7 +50,11 @@ public class PurchaseInvoicePanel extends JPanel {
     private JTable invoiceTable;
     private DefaultTableModel invoiceTableModel;
 
+    private JTable previousItemsTable;
+    private DefaultTableModel previousItemsTableModel;
+
     private JLabel totalAmountLabel;
+    private JLabel modeLabel;
 
     private final List<PurchaseInvoiceItem> currentItems = new ArrayList<>();
 
@@ -70,19 +76,25 @@ public class PurchaseInvoicePanel extends JPanel {
         panel.setBackground(UIStyle.BACKGROUND);
 
         panel.add(UIStyle.createTitle("Purchase Invoices"));
-        panel.add(UIStyle.createSubtitle("Create supplier purchase invoices and automatically increase warehouse inventory."));
+        panel.add(UIStyle.createSubtitle("Create, view, and update supplier purchase invoices. Drag the dividers to resize views."));
 
         return panel;
     }
 
-    private JPanel createMainPanel() {
-        JPanel panel = new JPanel(new GridLayout(1, 2, 15, 15));
-        panel.setBackground(UIStyle.BACKGROUND);
+    private JSplitPane createMainPanel() {
+        JSplitPane splitPane = new JSplitPane(
+                JSplitPane.HORIZONTAL_SPLIT,
+                createInvoiceCreationPanel(),
+                createInvoiceHistoryPanel()
+        );
 
-        panel.add(createInvoiceCreationPanel());
-        panel.add(createInvoiceListPanel());
+        splitPane.setResizeWeight(0.52);
+        splitPane.setOneTouchExpandable(true);
+        splitPane.setContinuousLayout(true);
+        splitPane.setDividerSize(8);
+        splitPane.setBorder(null);
 
-        return panel;
+        return splitPane;
     }
 
     private JPanel createInvoiceCreationPanel() {
@@ -95,12 +107,11 @@ public class PurchaseInvoicePanel extends JPanel {
 
         JPanel topPanel = new JPanel(new BorderLayout(10, 10));
         topPanel.setBackground(UIStyle.PANEL_BACKGROUND);
-
         topPanel.add(createInvoiceHeaderForm(), BorderLayout.NORTH);
         topPanel.add(createItemForm(), BorderLayout.CENTER);
 
         panel.add(topPanel, BorderLayout.NORTH);
-        panel.add(createItemsTablePanel(), BorderLayout.CENTER);
+        panel.add(createCurrentItemsTablePanel(), BorderLayout.CENTER);
         panel.add(createSavePanel(), BorderLayout.SOUTH);
 
         return panel;
@@ -110,8 +121,8 @@ public class PurchaseInvoicePanel extends JPanel {
         JPanel wrapper = new JPanel(new BorderLayout(8, 8));
         wrapper.setBackground(UIStyle.PANEL_BACKGROUND);
 
-        JLabel title = new JLabel("Invoice Information");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        modeLabel = new JLabel("Mode: New Purchase Invoice");
+        modeLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
 
         JPanel formPanel = new JPanel(new GridLayout(6, 2, 8, 8));
         formPanel.setBackground(UIStyle.PANEL_BACKGROUND);
@@ -122,13 +133,7 @@ public class PurchaseInvoicePanel extends JPanel {
         invoiceDateField = new JTextField(LocalDate.now().toString());
         estimatedArrivalField = new JTextField(LocalDate.now().plusDays(5).toString());
         paymentField = new JTextField("0.00");
-
-        paymentTypeComboBox = new JComboBox<>(new String[]{
-                "Cash",
-                "Card",
-                "Bank Transfer",
-                "Cheque"
-        });
+        paymentTypeComboBox = new JComboBox<>(new String[]{"Cash", "Card", "Bank Transfer", "Cheque"});
 
         UIStyle.styleComboBox(supplierComboBox);
         UIStyle.styleComboBox(warehouseComboBox);
@@ -136,9 +141,6 @@ public class PurchaseInvoicePanel extends JPanel {
         UIStyle.styleTextField(estimatedArrivalField);
         UIStyle.styleTextField(paymentField);
         UIStyle.styleComboBox(paymentTypeComboBox);
-
-        invoiceDateField.setToolTipText("Format: YYYY-MM-DD");
-        estimatedArrivalField.setToolTipText("Format: YYYY-MM-DD");
 
         formPanel.add(new JLabel("Supplier:"));
         formPanel.add(supplierComboBox);
@@ -153,7 +155,7 @@ public class PurchaseInvoicePanel extends JPanel {
         formPanel.add(new JLabel("Payment Type:"));
         formPanel.add(paymentTypeComboBox);
 
-        wrapper.add(title, BorderLayout.NORTH);
+        wrapper.add(modeLabel, BorderLayout.NORTH);
         wrapper.add(formPanel, BorderLayout.CENTER);
 
         return wrapper;
@@ -164,7 +166,7 @@ public class PurchaseInvoicePanel extends JPanel {
         wrapper.setBackground(UIStyle.PANEL_BACKGROUND);
         wrapper.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
 
-        JLabel title = new JLabel("Add Purchase Items");
+        JLabel title = new JLabel("Invoice Items");
         title.setFont(new Font("Segoe UI", Font.BOLD, 16));
 
         JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 10));
@@ -211,7 +213,7 @@ public class PurchaseInvoicePanel extends JPanel {
         return wrapper;
     }
 
-    private JPanel createItemsTablePanel() {
+    private JPanel createCurrentItemsTablePanel() {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
         panel.setBackground(UIStyle.PANEL_BACKGROUND);
 
@@ -220,6 +222,11 @@ public class PurchaseInvoicePanel extends JPanel {
         itemTable = new JTable(itemTableModel);
         TableUtil.setupTable(itemTable);
 
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        topPanel.setBackground(UIStyle.PANEL_BACKGROUND);
+        topPanel.add(TableUtil.createColumnVisibilityButton(itemTable, "Columns"));
+
+        panel.add(topPanel, BorderLayout.NORTH);
         panel.add(new JScrollPane(itemTable), BorderLayout.CENTER);
 
         totalAmountLabel = new JLabel("Total Amount: 0.00");
@@ -233,29 +240,34 @@ public class PurchaseInvoicePanel extends JPanel {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         panel.setBackground(UIStyle.PANEL_BACKGROUND);
 
-        JButton saveButton = new JButton("Save Invoice");
-        JButton clearButton = new JButton("Clear Form");
+        JButton saveButton = new JButton("Save New");
+        JButton updateButton = new JButton("Update Existing");
+        JButton newButton = new JButton("New Invoice");
         JButton refreshButton = new JButton("Refresh");
 
         UIStyle.stylePrimaryButton(saveButton);
-        UIStyle.stylePrimaryButton(clearButton);
+        UIStyle.stylePrimaryButton(updateButton);
+        UIStyle.stylePrimaryButton(newButton);
         UIStyle.stylePrimaryButton(refreshButton);
 
-        saveButton.addActionListener(e -> saveInvoice());
-        clearButton.addActionListener(e -> clearForm());
+        saveButton.addActionListener(e -> saveNewInvoice());
+        updateButton.addActionListener(e -> updateExistingInvoice());
+        newButton.addActionListener(e -> clearForm());
         refreshButton.addActionListener(e -> {
             loadComboBoxes();
             loadPurchaseInvoices();
+            loadSelectedInvoiceItems();
         });
 
         panel.add(saveButton);
-        panel.add(clearButton);
+        panel.add(updateButton);
+        panel.add(newButton);
         panel.add(refreshButton);
 
         return panel;
     }
 
-    private JPanel createInvoiceListPanel() {
+    private JPanel createInvoiceHistoryPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBackground(UIStyle.PANEL_BACKGROUND);
         panel.setBorder(BorderFactory.createCompoundBorder(
@@ -265,63 +277,79 @@ public class PurchaseInvoicePanel extends JPanel {
 
         JLabel title = UIStyle.createTitle("Purchase Invoice History");
 
-        String[] columns = {
-                "Invoice ID",
-                "Date",
-                "Estimated Arrival",
-                "Supplier",
-                "Warehouse",
-                "Payment",
-                "Payment Type",
-                "Amount"
-        };
-
-        invoiceTableModel = TableUtil.createNonEditableTableModel(columns);
+        String[] invoiceColumns = {"Invoice ID", "Date", "Estimated Arrival", "Supplier", "Warehouse", "Payment", "Payment Type", "Amount"};
+        invoiceTableModel = TableUtil.createNonEditableTableModel(invoiceColumns);
         invoiceTable = new JTable(invoiceTableModel);
         TableUtil.setupTable(invoiceTable);
 
+        invoiceTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                loadSelectedInvoiceItems();
+            }
+        });
+
+        String[] itemColumns = {"Item ID", "Product ID", "Product", "Quantity", "Purchase Price", "Line Total"};
+        previousItemsTableModel = TableUtil.createNonEditableTableModel(itemColumns);
+        previousItemsTable = new JTable(previousItemsTableModel);
+        TableUtil.setupTable(previousItemsTable);
+
+        JButton loadForEditButton = new JButton("Load Selected for Edit");
+        UIStyle.stylePrimaryButton(loadForEditButton);
+        loadForEditButton.addActionListener(e -> loadSelectedInvoiceForEdit());
+
+        JPanel invoiceButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        invoiceButtons.setBackground(UIStyle.PANEL_BACKGROUND);
+        invoiceButtons.add(TableUtil.createColumnVisibilityButton(invoiceTable, "Invoice Columns"));
+        invoiceButtons.add(loadForEditButton);
+
+        JPanel invoicePanel = new JPanel(new BorderLayout(8, 8));
+        invoicePanel.setBackground(UIStyle.PANEL_BACKGROUND);
+        invoicePanel.add(invoiceButtons, BorderLayout.NORTH);
+        invoicePanel.add(new JScrollPane(invoiceTable), BorderLayout.CENTER);
+
+        JPanel itemButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        itemButtons.setBackground(UIStyle.PANEL_BACKGROUND);
+        itemButtons.add(new JLabel("Selected Invoice Items"));
+        itemButtons.add(TableUtil.createColumnVisibilityButton(previousItemsTable, "Item Columns"));
+
+        JPanel itemPanel = new JPanel(new BorderLayout(8, 8));
+        itemPanel.setBackground(UIStyle.PANEL_BACKGROUND);
+        itemPanel.add(itemButtons, BorderLayout.NORTH);
+        itemPanel.add(new JScrollPane(previousItemsTable), BorderLayout.CENTER);
+
+        JSplitPane verticalSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, invoicePanel, itemPanel);
+        verticalSplit.setResizeWeight(0.55);
+        verticalSplit.setOneTouchExpandable(true);
+        verticalSplit.setContinuousLayout(true);
+        verticalSplit.setDividerSize(8);
+        verticalSplit.setBorder(null);
+
         panel.add(title, BorderLayout.NORTH);
-        panel.add(new JScrollPane(invoiceTable), BorderLayout.CENTER);
+        panel.add(verticalSplit, BorderLayout.CENTER);
 
         return panel;
     }
 
     private void loadComboBoxes() {
         supplierComboBox.removeAllItems();
-        for (Supplier supplier : supplierDAO.getAllSuppliers()) {
-            supplierComboBox.addItem(supplier);
-        }
+        for (Supplier supplier : supplierDAO.getAllSuppliers()) supplierComboBox.addItem(supplier);
 
         productComboBox.removeAllItems();
-        for (Product product : productDAO.getAllProducts()) {
-            productComboBox.addItem(product);
-        }
+        for (Product product : productDAO.getAllProducts()) productComboBox.addItem(product);
 
         warehouseComboBox.removeAllItems();
-        for (WarehouseOption warehouse : loadWarehouses()) {
-            warehouseComboBox.addItem(warehouse);
-        }
+        for (WarehouseOption warehouse : loadWarehouses()) warehouseComboBox.addItem(warehouse);
     }
 
     private List<WarehouseOption> loadWarehouses() {
         List<WarehouseOption> warehouses = new ArrayList<>();
-
-        String sql = """
-                SELECT warehouse_id, warehouse_name
-                FROM Warehouse
-                ORDER BY warehouse_name
-                """;
+        String sql = "SELECT warehouse_id, warehouse_name FROM Warehouse ORDER BY warehouse_name";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
 
-            while (rs.next()) {
-                warehouses.add(new WarehouseOption(
-                        rs.getInt("warehouse_id"),
-                        rs.getString("warehouse_name")
-                ));
-            }
+            while (rs.next()) warehouses.add(new WarehouseOption(rs.getInt("warehouse_id"), rs.getString("warehouse_name")));
 
         } catch (SQLException e) {
             System.out.println("Error loading warehouses: " + e.getMessage());
@@ -347,6 +375,80 @@ public class PurchaseInvoicePanel extends JPanel {
         }
     }
 
+    private void loadSelectedInvoiceItems() {
+        if (previousItemsTableModel == null || invoiceTable == null) return;
+
+        int selectedRow = invoiceTable.getSelectedRow();
+        if (selectedRow == -1) return;
+
+        int modelRow = invoiceTable.convertRowIndexToModel(selectedRow);
+        int invoiceId = Integer.parseInt(invoiceTableModel.getValueAt(modelRow, 0).toString());
+
+        TableUtil.clearTable(previousItemsTableModel);
+
+        for (PurchaseInvoiceItem item : purchaseInvoiceDAO.getPurchaseInvoiceItems(invoiceId)) {
+            BigDecimal lineTotal = item.getPurchasePrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+            previousItemsTableModel.addRow(new Object[]{
+                    item.getPurchaseItemId(),
+                    item.getProductId(),
+                    item.getProductName(),
+                    item.getQuantity(),
+                    item.getPurchasePrice(),
+                    lineTotal
+            });
+        }
+    }
+
+    private void loadSelectedInvoiceForEdit() {
+        int selectedRow = invoiceTable.getSelectedRow();
+
+        if (selectedRow == -1) {
+            MessageUtil.showWarning("Select an invoice first.");
+            return;
+        }
+
+        int modelRow = invoiceTable.convertRowIndexToModel(selectedRow);
+        int invoiceId = Integer.parseInt(invoiceTableModel.getValueAt(modelRow, 0).toString());
+
+        PurchaseInvoice invoice = purchaseInvoiceDAO.getPurchaseInvoiceById(invoiceId);
+
+        if (invoice == null) {
+            MessageUtil.showError("Could not load selected invoice.");
+            return;
+        }
+
+        editingInvoiceId = invoice.getPurchaseInvoiceId();
+        modeLabel.setText("Mode: Editing Purchase Invoice #" + editingInvoiceId);
+
+        selectSupplierById(invoice.getSupplierId());
+        selectWarehouseById(invoice.getWarehouseId());
+
+        invoiceDateField.setText(invoice.getInvoiceDate().toString());
+        estimatedArrivalField.setText(invoice.getEstimatedArrival() != null ? invoice.getEstimatedArrival().toString() : "");
+        paymentField.setText(invoice.getPayment().toString());
+        paymentTypeComboBox.setSelectedItem(invoice.getPaymentType());
+
+        currentItems.clear();
+        TableUtil.clearTable(itemTableModel);
+
+        for (PurchaseInvoiceItem item : invoice.getItems()) {
+            PurchaseInvoiceItem copy = new PurchaseInvoiceItem(item.getProductId(), item.getPurchasePrice(), item.getQuantity());
+            copy.setProductName(item.getProductName());
+            currentItems.add(copy);
+
+            BigDecimal lineTotal = item.getPurchasePrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+            itemTableModel.addRow(new Object[]{
+                    item.getProductId(),
+                    item.getProductName(),
+                    item.getQuantity(),
+                    item.getPurchasePrice(),
+                    lineTotal
+            });
+        }
+
+        updateTotalAmount();
+    }
+
     private void addItem() {
         Product product = (Product) productComboBox.getSelectedItem();
 
@@ -368,23 +470,16 @@ public class PurchaseInvoicePanel extends JPanel {
         int quantity = Integer.parseInt(quantityField.getText().trim());
         BigDecimal purchasePrice = new BigDecimal(purchasePriceField.getText().trim());
 
-        PurchaseInvoiceItem item = new PurchaseInvoiceItem(
-                product.getProductId(),
-                purchasePrice,
-                quantity
-        );
-
+        PurchaseInvoiceItem item = new PurchaseInvoiceItem(product.getProductId(), purchasePrice, quantity);
         item.setProductName(product.getProductName());
         currentItems.add(item);
-
-        BigDecimal lineTotal = purchasePrice.multiply(BigDecimal.valueOf(quantity));
 
         itemTableModel.addRow(new Object[]{
                 product.getProductId(),
                 product.getProductName(),
                 quantity,
                 purchasePrice,
-                lineTotal
+                purchasePrice.multiply(BigDecimal.valueOf(quantity))
         });
 
         quantityField.setText("");
@@ -401,10 +496,8 @@ public class PurchaseInvoicePanel extends JPanel {
         }
 
         int modelRow = itemTable.convertRowIndexToModel(selectedRow);
-
         currentItems.remove(modelRow);
         itemTableModel.removeRow(modelRow);
-
         updateTotalAmount();
     }
 
@@ -414,23 +507,57 @@ public class PurchaseInvoicePanel extends JPanel {
         updateTotalAmount();
     }
 
-    private void saveInvoice() {
+    private void saveNewInvoice() {
+        PurchaseInvoice invoice = buildInvoiceFromForm(-1);
+        if (invoice == null) return;
+
+        if (purchaseInvoiceDAO.createPurchaseInvoice(invoice)) {
+            MessageUtil.showSuccess("Purchase invoice saved successfully. Inventory increased.");
+            clearForm();
+            loadPurchaseInvoices();
+        } else {
+            MessageUtil.showError("Failed to save purchase invoice.");
+        }
+    }
+
+    private void updateExistingInvoice() {
+        if (editingInvoiceId <= 0) {
+            MessageUtil.showWarning("Load an existing invoice first.");
+            return;
+        }
+
+        if (!MessageUtil.confirm("Update this invoice? Inventory will be adjusted based on the changes.")) return;
+
+        PurchaseInvoice invoice = buildInvoiceFromForm(editingInvoiceId);
+        if (invoice == null) return;
+
+        if (purchaseInvoiceDAO.updatePurchaseInvoice(invoice)) {
+            MessageUtil.showSuccess("Purchase invoice updated successfully. Inventory adjusted.");
+            clearForm();
+            loadPurchaseInvoices();
+            TableUtil.clearTable(previousItemsTableModel);
+        } else {
+            MessageUtil.showError("Failed to update invoice. Old purchased stock may already have been used by sales/transfers.");
+        }
+    }
+
+    private PurchaseInvoice buildInvoiceFromForm(int invoiceId) {
         Supplier supplier = (Supplier) supplierComboBox.getSelectedItem();
         WarehouseOption warehouse = (WarehouseOption) warehouseComboBox.getSelectedItem();
 
         if (supplier == null) {
             MessageUtil.showError("Select a supplier.");
-            return;
+            return null;
         }
 
         if (warehouse == null) {
             MessageUtil.showError("Select a warehouse.");
-            return;
+            return null;
         }
 
         if (currentItems.isEmpty()) {
-            MessageUtil.showError("Add at least one item to the invoice.");
-            return;
+            MessageUtil.showError("Add at least one item.");
+            return null;
         }
 
         LocalDate invoiceDate;
@@ -438,19 +565,17 @@ public class PurchaseInvoicePanel extends JPanel {
 
         try {
             invoiceDate = LocalDate.parse(invoiceDateField.getText().trim());
-
             if (!ValidationUtil.isEmpty(estimatedArrivalField.getText())) {
                 estimatedArrival = LocalDate.parse(estimatedArrivalField.getText().trim());
             }
-
         } catch (DateTimeParseException e) {
             MessageUtil.showError("Dates must be in YYYY-MM-DD format.");
-            return;
+            return null;
         }
 
         if (!ValidationUtil.isNonNegativeDecimal(paymentField.getText())) {
             MessageUtil.showError("Payment must be a valid non-negative number.");
-            return;
+            return null;
         }
 
         BigDecimal payment = new BigDecimal(paymentField.getText().trim());
@@ -467,24 +592,16 @@ public class PurchaseInvoicePanel extends JPanel {
                 new ArrayList<>(currentItems)
         );
 
-        if (purchaseInvoiceDAO.createPurchaseInvoice(invoice)) {
-            MessageUtil.showSuccess("Purchase invoice saved successfully. Inventory increased.");
-            clearForm();
-            loadPurchaseInvoices();
-        } else {
-            MessageUtil.showError("Failed to save purchase invoice.");
-        }
+        if (invoiceId > 0) invoice.setPurchaseInvoiceId(invoiceId);
+
+        return invoice;
     }
 
     private BigDecimal calculateTotalAmount() {
         BigDecimal total = BigDecimal.ZERO;
-
         for (PurchaseInvoiceItem item : currentItems) {
-            BigDecimal lineTotal = item.getPurchasePrice()
-                    .multiply(BigDecimal.valueOf(item.getQuantity()));
-            total = total.add(lineTotal);
+            total = total.add(item.getPurchasePrice().multiply(BigDecimal.valueOf(item.getQuantity())));
         }
-
         return total;
     }
 
@@ -493,17 +610,12 @@ public class PurchaseInvoicePanel extends JPanel {
     }
 
     private void clearForm() {
-        if (supplierComboBox.getItemCount() > 0) {
-            supplierComboBox.setSelectedIndex(0);
-        }
+        editingInvoiceId = -1;
+        modeLabel.setText("Mode: New Purchase Invoice");
 
-        if (warehouseComboBox.getItemCount() > 0) {
-            warehouseComboBox.setSelectedIndex(0);
-        }
-
-        if (productComboBox.getItemCount() > 0) {
-            productComboBox.setSelectedIndex(0);
-        }
+        if (supplierComboBox.getItemCount() > 0) supplierComboBox.setSelectedIndex(0);
+        if (warehouseComboBox.getItemCount() > 0) warehouseComboBox.setSelectedIndex(0);
+        if (productComboBox.getItemCount() > 0) productComboBox.setSelectedIndex(0);
 
         invoiceDateField.setText(LocalDate.now().toString());
         estimatedArrivalField.setText(LocalDate.now().plusDays(5).toString());
@@ -512,8 +624,25 @@ public class PurchaseInvoicePanel extends JPanel {
 
         quantityField.setText("");
         purchasePriceField.setText("");
-
         clearItems();
+    }
+
+    private void selectSupplierById(int supplierId) {
+        for (int i = 0; i < supplierComboBox.getItemCount(); i++) {
+            if (supplierComboBox.getItemAt(i).getSupplierId() == supplierId) {
+                supplierComboBox.setSelectedIndex(i);
+                return;
+            }
+        }
+    }
+
+    private void selectWarehouseById(int warehouseId) {
+        for (int i = 0; i < warehouseComboBox.getItemCount(); i++) {
+            if (warehouseComboBox.getItemAt(i).getWarehouseId() == warehouseId) {
+                warehouseComboBox.setSelectedIndex(i);
+                return;
+            }
+        }
     }
 
     private static class WarehouseOption {

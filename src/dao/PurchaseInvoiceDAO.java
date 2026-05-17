@@ -14,12 +14,7 @@ public class PurchaseInvoiceDAO {
     private final InventoryDAO inventoryDAO = new InventoryDAO();
 
     public boolean createPurchaseInvoice(PurchaseInvoice invoice) {
-        if (invoice == null) {
-            System.out.println("Purchase invoice cannot be null.");
-            return false;
-        }
-
-        if (invoice.getItems() == null || invoice.getItems().isEmpty()) {
+        if (invoice == null || invoice.getItems() == null || invoice.getItems().isEmpty()) {
             System.out.println("Purchase invoice must contain at least one item.");
             return false;
         }
@@ -27,94 +22,108 @@ public class PurchaseInvoiceDAO {
         try (Connection conn = DBConnection.getConnection()) {
             try {
                 conn.setAutoCommit(false);
-
                 validateInvoice(invoice);
-
-                BigDecimal calculatedAmount = calculateInvoiceAmount(invoice.getItems());
-                invoice.setAmount(calculatedAmount);
+                invoice.setAmount(calculateInvoiceAmount(invoice.getItems()));
 
                 int invoiceId = insertPurchaseInvoiceHeader(conn, invoice);
 
                 for (PurchaseInvoiceItem item : invoice.getItems()) {
                     insertPurchaseInvoiceItem(conn, invoiceId, item);
-
-                    boolean stockIncreased = inventoryDAO.increaseStock(
-                            conn,
-                            item.getProductId(),
-                            invoice.getWarehouseId(),
-                            item.getQuantity()
-                    );
-
-                    if (!stockIncreased) {
+                    if (!inventoryDAO.increaseStock(conn, item.getProductId(), invoice.getWarehouseId(), item.getQuantity())) {
                         throw new SQLException("Failed to increase inventory for product ID: " + item.getProductId());
                     }
                 }
 
                 conn.commit();
                 return true;
-
             } catch (Exception e) {
                 conn.rollback();
                 System.out.println("Purchase invoice failed. Rolled back changes.");
                 System.out.println(e.getMessage());
                 return false;
-
             } finally {
                 conn.setAutoCommit(true);
             }
-
         } catch (SQLException e) {
             System.out.println("Database error while creating purchase invoice: " + e.getMessage());
             return false;
         }
     }
 
+    public boolean updatePurchaseInvoice(PurchaseInvoice updatedInvoice) {
+        if (updatedInvoice == null || updatedInvoice.getPurchaseInvoiceId() <= 0) {
+            System.out.println("Valid purchase invoice ID is required for update.");
+            return false;
+        }
+
+        if (updatedInvoice.getItems() == null || updatedInvoice.getItems().isEmpty()) {
+            System.out.println("Purchase invoice must contain at least one item.");
+            return false;
+        }
+
+        try (Connection conn = DBConnection.getConnection()) {
+            try {
+                conn.setAutoCommit(false);
+                validateInvoice(updatedInvoice);
+
+                PurchaseInvoice oldInvoice = getPurchaseInvoiceById(conn, updatedInvoice.getPurchaseInvoiceId());
+                if (oldInvoice == null) throw new SQLException("Purchase invoice not found.");
+
+                // Reverse old purchase effect from inventory.
+                for (PurchaseInvoiceItem oldItem : oldInvoice.getItems()) {
+                    if (!inventoryDAO.decreaseStock(conn, oldItem.getProductId(), oldInvoice.getWarehouseId(), oldItem.getQuantity())) {
+                        throw new SQLException("Cannot update invoice because old stock for product ID " + oldItem.getProductId() + " is no longer available.");
+                    }
+                }
+
+                updatedInvoice.setAmount(calculateInvoiceAmount(updatedInvoice.getItems()));
+
+                deletePurchaseInvoiceItems(conn, updatedInvoice.getPurchaseInvoiceId());
+                updatePurchaseInvoiceHeader(conn, updatedInvoice);
+
+                // Apply new purchase effect to inventory.
+                for (PurchaseInvoiceItem item : updatedInvoice.getItems()) {
+                    insertPurchaseInvoiceItem(conn, updatedInvoice.getPurchaseInvoiceId(), item);
+                    if (!inventoryDAO.increaseStock(conn, item.getProductId(), updatedInvoice.getWarehouseId(), item.getQuantity())) {
+                        throw new SQLException("Failed to increase inventory for product ID: " + item.getProductId());
+                    }
+                }
+
+                conn.commit();
+                return true;
+            } catch (Exception e) {
+                conn.rollback();
+                System.out.println("Purchase invoice update failed. Rolled back changes.");
+                System.out.println(e.getMessage());
+                return false;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            System.out.println("Database error while updating purchase invoice: " + e.getMessage());
+            return false;
+        }
+    }
+
     private void validateInvoice(PurchaseInvoice invoice) {
-        if (invoice.getInvoiceDate() == null) {
-            throw new IllegalArgumentException("Invoice date is required.");
-        }
-
-        if (invoice.getPayment() == null || invoice.getPayment().compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Payment must be non-negative.");
-        }
-
-        if (invoice.getPaymentType() == null || invoice.getPaymentType().trim().isEmpty()) {
-            throw new IllegalArgumentException("Payment type is required.");
-        }
-
-        if (invoice.getSupplierId() <= 0) {
-            throw new IllegalArgumentException("Invalid supplier ID.");
-        }
-
-        if (invoice.getWarehouseId() <= 0) {
-            throw new IllegalArgumentException("Invalid warehouse ID.");
-        }
+        if (invoice.getInvoiceDate() == null) throw new IllegalArgumentException("Invoice date is required.");
+        if (invoice.getPayment() == null || invoice.getPayment().compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("Payment must be non-negative.");
+        if (invoice.getPaymentType() == null || invoice.getPaymentType().trim().isEmpty()) throw new IllegalArgumentException("Payment type is required.");
+        if (invoice.getSupplierId() <= 0) throw new IllegalArgumentException("Invalid supplier ID.");
+        if (invoice.getWarehouseId() <= 0) throw new IllegalArgumentException("Invalid warehouse ID.");
 
         for (PurchaseInvoiceItem item : invoice.getItems()) {
-            if (item.getProductId() <= 0) {
-                throw new IllegalArgumentException("Invalid product ID.");
-            }
-
-            if (item.getQuantity() <= 0) {
-                throw new IllegalArgumentException("Item quantity must be greater than zero.");
-            }
-
-            if (item.getPurchasePrice() == null || item.getPurchasePrice().compareTo(BigDecimal.ZERO) < 0) {
-                throw new IllegalArgumentException("Purchase price must be non-negative.");
-            }
+            if (item.getProductId() <= 0) throw new IllegalArgumentException("Invalid product ID.");
+            if (item.getQuantity() <= 0) throw new IllegalArgumentException("Item quantity must be greater than zero.");
+            if (item.getPurchasePrice() == null || item.getPurchasePrice().compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("Purchase price must be non-negative.");
         }
     }
 
     private BigDecimal calculateInvoiceAmount(List<PurchaseInvoiceItem> items) {
         BigDecimal total = BigDecimal.ZERO;
-
         for (PurchaseInvoiceItem item : items) {
-            BigDecimal lineTotal = item.getPurchasePrice()
-                    .multiply(BigDecimal.valueOf(item.getQuantity()));
-
-            total = total.add(lineTotal);
+            total = total.add(item.getPurchasePrice().multiply(BigDecimal.valueOf(item.getQuantity())));
         }
-
         return total;
     }
 
@@ -127,32 +136,43 @@ public class PurchaseInvoiceDAO {
 
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setDate(1, Date.valueOf(invoice.getInvoiceDate()));
-
-            if (invoice.getEstimatedArrival() != null) {
-                stmt.setDate(2, Date.valueOf(invoice.getEstimatedArrival()));
-            } else {
-                stmt.setNull(2, Types.DATE);
-            }
-
+            if (invoice.getEstimatedArrival() != null) stmt.setDate(2, Date.valueOf(invoice.getEstimatedArrival()));
+            else stmt.setNull(2, Types.DATE);
             stmt.setBigDecimal(3, invoice.getPayment());
             stmt.setString(4, invoice.getPaymentType());
             stmt.setBigDecimal(5, invoice.getAmount());
             stmt.setInt(6, invoice.getSupplierId());
             stmt.setInt(7, invoice.getWarehouseId());
 
-            int affectedRows = stmt.executeUpdate();
+            if (stmt.executeUpdate() == 0) throw new SQLException("Creating purchase invoice failed.");
 
-            if (affectedRows == 0) {
-                throw new SQLException("Creating purchase invoice failed. No rows affected.");
+            try (ResultSet keys = stmt.getGeneratedKeys()) {
+                if (keys.next()) return keys.getInt(1);
+                throw new SQLException("No invoice ID generated.");
             }
+        }
+    }
 
-            try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-                if (generatedKeys.next()) {
-                    return generatedKeys.getInt(1);
-                } else {
-                    throw new SQLException("Creating purchase invoice failed. No ID obtained.");
-                }
-            }
+    private void updatePurchaseInvoiceHeader(Connection conn, PurchaseInvoice invoice) throws SQLException {
+        String sql = """
+                UPDATE PurchaseInvoice
+                SET invoice_date = ?, estimated_arrival = ?, payment = ?, payment_type = ?,
+                    amount = ?, supplier_id = ?, warehouse_id = ?
+                WHERE purchase_invoice_id = ?
+                """;
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setDate(1, Date.valueOf(invoice.getInvoiceDate()));
+            if (invoice.getEstimatedArrival() != null) stmt.setDate(2, Date.valueOf(invoice.getEstimatedArrival()));
+            else stmt.setNull(2, Types.DATE);
+            stmt.setBigDecimal(3, invoice.getPayment());
+            stmt.setString(4, invoice.getPaymentType());
+            stmt.setBigDecimal(5, invoice.getAmount());
+            stmt.setInt(6, invoice.getSupplierId());
+            stmt.setInt(7, invoice.getWarehouseId());
+            stmt.setInt(8, invoice.getPurchaseInvoiceId());
+
+            if (stmt.executeUpdate() == 0) throw new SQLException("Updating purchase invoice failed.");
         }
     }
 
@@ -168,25 +188,24 @@ public class PurchaseInvoiceDAO {
             stmt.setInt(2, item.getProductId());
             stmt.setBigDecimal(3, item.getPurchasePrice());
             stmt.setInt(4, item.getQuantity());
+            stmt.executeUpdate();
+        }
+    }
 
+    private void deletePurchaseInvoiceItems(Connection conn, int purchaseInvoiceId) throws SQLException {
+        String sql = "DELETE FROM PurchaseInvoiceItem WHERE purchase_invoice_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, purchaseInvoiceId);
             stmt.executeUpdate();
         }
     }
 
     public List<PurchaseInvoice> getAllPurchaseInvoices() {
         List<PurchaseInvoice> invoices = new ArrayList<>();
-
         String sql = """
-                SELECT pi.purchase_invoice_id,
-                       pi.invoice_date,
-                       pi.estimated_arrival,
-                       pi.payment,
-                       pi.payment_type,
-                       pi.amount,
-                       pi.supplier_id,
-                       s.supplier_name,
-                       pi.warehouse_id,
-                       w.warehouse_name
+                SELECT pi.purchase_invoice_id, pi.invoice_date, pi.estimated_arrival, pi.payment,
+                       pi.payment_type, pi.amount, pi.supplier_id, s.supplier_name,
+                       pi.warehouse_id, w.warehouse_name
                 FROM PurchaseInvoice pi
                 JOIN Supplier s ON pi.supplier_id = s.supplier_id
                 JOIN Warehouse w ON pi.warehouse_id = w.warehouse_id
@@ -196,77 +215,68 @@ public class PurchaseInvoiceDAO {
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                invoices.add(mapJoinedResultSetToPurchaseInvoice(rs));
-            }
-
+            while (rs.next()) invoices.add(mapJoinedResultSetToPurchaseInvoice(rs));
         } catch (SQLException e) {
             System.out.println("Error loading purchase invoices: " + e.getMessage());
         }
-
         return invoices;
     }
 
     public PurchaseInvoice getPurchaseInvoiceById(int purchaseInvoiceId) {
+        try (Connection conn = DBConnection.getConnection()) {
+            return getPurchaseInvoiceById(conn, purchaseInvoiceId);
+        } catch (SQLException e) {
+            System.out.println("Error getting purchase invoice by ID: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private PurchaseInvoice getPurchaseInvoiceById(Connection conn, int purchaseInvoiceId) throws SQLException {
         String sql = """
-                SELECT pi.purchase_invoice_id,
-                       pi.invoice_date,
-                       pi.estimated_arrival,
-                       pi.payment,
-                       pi.payment_type,
-                       pi.amount,
-                       pi.supplier_id,
-                       s.supplier_name,
-                       pi.warehouse_id,
-                       w.warehouse_name
+                SELECT pi.purchase_invoice_id, pi.invoice_date, pi.estimated_arrival, pi.payment,
+                       pi.payment_type, pi.amount, pi.supplier_id, s.supplier_name,
+                       pi.warehouse_id, w.warehouse_name
                 FROM PurchaseInvoice pi
                 JOIN Supplier s ON pi.supplier_id = s.supplier_id
                 JOIN Warehouse w ON pi.warehouse_id = w.warehouse_id
                 WHERE pi.purchase_invoice_id = ?
                 """;
 
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, purchaseInvoiceId);
-
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     PurchaseInvoice invoice = mapJoinedResultSetToPurchaseInvoice(rs);
-                    invoice.setItems(getPurchaseInvoiceItems(purchaseInvoiceId));
+                    invoice.setItems(getPurchaseInvoiceItems(conn, purchaseInvoiceId));
                     return invoice;
                 }
             }
-
-        } catch (SQLException e) {
-            System.out.println("Error getting purchase invoice by ID: " + e.getMessage());
         }
-
         return null;
     }
 
     public List<PurchaseInvoiceItem> getPurchaseInvoiceItems(int purchaseInvoiceId) {
-        List<PurchaseInvoiceItem> items = new ArrayList<>();
+        try (Connection conn = DBConnection.getConnection()) {
+            return getPurchaseInvoiceItems(conn, purchaseInvoiceId);
+        } catch (SQLException e) {
+            System.out.println("Error loading purchase invoice items: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
 
+    private List<PurchaseInvoiceItem> getPurchaseInvoiceItems(Connection conn, int purchaseInvoiceId) throws SQLException {
+        List<PurchaseInvoiceItem> items = new ArrayList<>();
         String sql = """
-                SELECT pii.purchase_item_id,
-                       pii.purchase_invoice_id,
-                       pii.product_id,
-                       p.product_name,
-                       pii.purchase_price,
-                       pii.quantity
+                SELECT pii.purchase_item_id, pii.purchase_invoice_id, pii.product_id,
+                       p.product_name, pii.purchase_price, pii.quantity
                 FROM PurchaseInvoiceItem pii
                 JOIN Product p ON pii.product_id = p.product_id
                 WHERE pii.purchase_invoice_id = ?
                 ORDER BY pii.purchase_item_id
                 """;
 
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, purchaseInvoiceId);
-
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     items.add(new PurchaseInvoiceItem(
@@ -279,53 +289,34 @@ public class PurchaseInvoiceDAO {
                     ));
                 }
             }
-
-        } catch (SQLException e) {
-            System.out.println("Error loading purchase invoice items: " + e.getMessage());
         }
-
         return items;
     }
 
     public List<PurchaseInvoice> getPurchaseInvoicesBySupplierAndDate(int supplierId, Date startDate, Date endDate) {
         List<PurchaseInvoice> invoices = new ArrayList<>();
-
         String sql = """
-                SELECT pi.purchase_invoice_id,
-                       pi.invoice_date,
-                       pi.estimated_arrival,
-                       pi.payment,
-                       pi.payment_type,
-                       pi.amount,
-                       pi.supplier_id,
-                       s.supplier_name,
-                       pi.warehouse_id,
-                       w.warehouse_name
+                SELECT pi.purchase_invoice_id, pi.invoice_date, pi.estimated_arrival, pi.payment,
+                       pi.payment_type, pi.amount, pi.supplier_id, s.supplier_name,
+                       pi.warehouse_id, w.warehouse_name
                 FROM PurchaseInvoice pi
                 JOIN Supplier s ON pi.supplier_id = s.supplier_id
                 JOIN Warehouse w ON pi.warehouse_id = w.warehouse_id
-                WHERE pi.supplier_id = ?
-                  AND pi.invoice_date BETWEEN ? AND ?
+                WHERE pi.supplier_id = ? AND pi.invoice_date BETWEEN ? AND ?
                 ORDER BY pi.invoice_date DESC
                 """;
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
-
             stmt.setInt(1, supplierId);
             stmt.setDate(2, startDate);
             stmt.setDate(3, endDate);
-
             try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    invoices.add(mapJoinedResultSetToPurchaseInvoice(rs));
-                }
+                while (rs.next()) invoices.add(mapJoinedResultSetToPurchaseInvoice(rs));
             }
-
         } catch (SQLException e) {
             System.out.println("Error loading purchase invoices by supplier/date: " + e.getMessage());
         }
-
         return invoices;
     }
 
