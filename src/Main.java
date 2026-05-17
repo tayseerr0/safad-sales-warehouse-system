@@ -1,9 +1,23 @@
 import db.DBConnection;
+import ui.MainFrame;
+
+import javax.swing.*;
+
 
 public static void main(String[] args) {
-    if (DBConnection.testConnection()) {
-        System.out.println("Connected to SAFAD database successfully.");
-    } else {
-        System.out.println("Failed to connect to SAFAD database.");
+
+    if (!DBConnection.testConnection()) {
+        JOptionPane.showMessageDialog(
+                null,
+                "Failed to connect to SAFAD database.\nPlease check MySQL server, database name, username, and password.",
+                "Database Connection Error",
+                JOptionPane.ERROR_MESSAGE
+        );
+        return;
     }
+
+    SwingUtilities.invokeLater(() -> {
+        MainFrame frame = new MainFrame();
+        frame.setVisible(true);
+    });
 }
