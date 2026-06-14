@@ -97,8 +97,7 @@ public class MainFrame extends JFrame {
         contentPanel.add(new SalesInvoicePanel(), "Sales");
         contentPanel.add(createPlaceholderPanel("Inventory", "Inventory screen will be added here."), "Inventory");
         contentPanel.add(new SalesReportsPanel(), "Reports");
-        contentPanel.add(createPlaceholderPanel("Transfers", "Warehouse transfer screen will be added here."), "Transfers");
-
+        contentPanel.add(new WarehouseTransferPanel(), "Transfers");
         return contentPanel;
     }
 
