@@ -41,7 +41,13 @@ public class UIStyle {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
     }
-
+    public static void styleTextFieldIfPossible(JComponent component) {
+        if (component instanceof JTextField field) {
+            styleTextField(field);
+        } else if (component instanceof JComboBox<?> comboBox) {
+            styleComboBox(comboBox);
+        }
+    }
     public static void styleTextField(JTextField field) {
         field.setFont(LABEL_FONT);
         field.setPreferredSize(new Dimension(180, 34));

@@ -92,11 +92,11 @@ public class MainFrame extends JFrame {
         contentPanel.add(new ProductPanel(), "Products");
         contentPanel.add(new SupplierPanel(), "Suppliers");
         contentPanel.add(new PurchaseInvoicePanel(), "Purchases");
-        contentPanel.add(createPlaceholderPanel("Clients", "Client management screen will be added here."), "Clients");
-        contentPanel.add(createPlaceholderPanel("Warehouses", "Warehouse management screen will be added here."), "Warehouses");
-        contentPanel.add(createPlaceholderPanel("Sales", "Sales invoice screen will be added here."), "Sales");
+        contentPanel.add(new ClientPanel(), "Clients");
+        contentPanel.add(new WarehousePanel(), "Warehouses");
+        contentPanel.add(new SalesInvoicePanel(), "Sales");
         contentPanel.add(createPlaceholderPanel("Inventory", "Inventory screen will be added here."), "Inventory");
-        contentPanel.add(createPlaceholderPanel("Reports", "Reports and charts screen will be added here."), "Reports");
+        contentPanel.add(new SalesReportsPanel(), "Reports");
         contentPanel.add(createPlaceholderPanel("Transfers", "Warehouse transfer screen will be added here."), "Transfers");
 
         return contentPanel;
