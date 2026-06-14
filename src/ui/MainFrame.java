@@ -96,7 +96,7 @@ public class MainFrame extends JFrame {
         contentPanel.add(new WarehousePanel(), "Warehouses");
         contentPanel.add(new SalesInvoicePanel(), "Sales");
         contentPanel.add(createPlaceholderPanel("Inventory", "Inventory screen will be added here."), "Inventory");
-        contentPanel.add(new SalesReportsPanel(), "Reports");
+        contentPanel.add(createReportsPanel(), "Reports");
         contentPanel.add(new WarehouseTransferPanel(), "Transfers");
         return contentPanel;
     }
@@ -203,6 +203,18 @@ public class MainFrame extends JFrame {
         centerPanel.add(box);
 
         panel.add(centerPanel, BorderLayout.CENTER);
+
+        return panel;
+    }
+    private JPanel createReportsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(UIStyle.BACKGROUND);
+
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Sales Reports", new SalesReportsPanel());
+        tabs.addTab("Purchase Reports", new PurchaseReportsPanel());
+
+        panel.add(tabs, BorderLayout.CENTER);
 
         return panel;
     }
