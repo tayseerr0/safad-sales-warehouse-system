@@ -36,13 +36,10 @@ public class WarehousePanel extends JPanel {
     }
 
     private JPanel createHeaderPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 1));
-        panel.setBackground(UIStyle.BACKGROUND);
-
-        panel.add(UIStyle.createTitle("Warehouse Management"));
-        panel.add(UIStyle.createSubtitle("Add, update, delete, search, and view SAFAD warehouses."));
-
-        return panel;
+        return UIStyle.createHeaderPanel(
+                "Warehouse Management",
+                "Add, update, delete, search, and view SAFAD warehouses."
+        );
     }
 
     private JPanel createMainPanel() {
@@ -61,10 +58,8 @@ public class WarehousePanel extends JPanel {
                 tablePanel
         );
 
-        splitPane.setResizeWeight(0.30);
+        UIStyle.styleSplitPane(splitPane, 0.30);
         splitPane.setDividerLocation(330);
-        splitPane.setOneTouchExpandable(true);
-        splitPane.setContinuousLayout(true);
 
         panel.add(splitPane, BorderLayout.CENTER);
 
@@ -72,13 +67,8 @@ public class WarehousePanel extends JPanel {
     }
 
     private JPanel createFormPanel() {
-        JPanel wrapper = new JPanel(new BorderLayout(10, 10));
-        wrapper.setBackground(UIStyle.PANEL_BACKGROUND);
+        JPanel wrapper = UIStyle.createCardPanel();
         wrapper.setPreferredSize(new Dimension(330, 0));
-        wrapper.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
 
         JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setBackground(UIStyle.PANEL_BACKGROUND);
@@ -153,8 +143,7 @@ public class WarehousePanel extends JPanel {
     }
 
     private JPanel createTablePanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(UIStyle.BACKGROUND);
+        JPanel panel = UIStyle.createCardPanel();
 
         panel.add(createSearchPanel(), BorderLayout.NORTH);
 
@@ -178,11 +167,12 @@ public class WarehousePanel extends JPanel {
 
     private JPanel createSearchPanel() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-        panel.setBackground(UIStyle.BACKGROUND);
+        panel.setBackground(UIStyle.PANEL_BACKGROUND);
 
         searchField = new JTextField(22);
         JButton searchButton = new JButton("Search");
 
+        UIStyle.styleTextField(searchField);
         UIStyle.stylePrimaryButton(searchButton);
 
         searchButton.addActionListener(e -> searchWarehouses());

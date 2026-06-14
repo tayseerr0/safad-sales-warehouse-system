@@ -38,17 +38,18 @@ public class CategoryBrandPanel extends JPanel {
         setBackground(UIStyle.BACKGROUND);
         setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
+        add(UIStyle.createHeaderPanel(
+                "Catalog",
+                "Manage product categories and brands used across the SAFAD product catalog."
+        ), BorderLayout.NORTH);
+
         JSplitPane splitPane = new JSplitPane(
                 JSplitPane.HORIZONTAL_SPLIT,
                 createCategoryPanel(),
                 createBrandPanel()
         );
 
-        splitPane.setResizeWeight(0.50);
-        splitPane.setOneTouchExpandable(true);
-        splitPane.setContinuousLayout(true);
-        splitPane.setDividerSize(8);
-        splitPane.setBorder(null);
+        UIStyle.styleSplitPane(splitPane, 0.50);
 
         add(splitPane, BorderLayout.CENTER);
 
@@ -57,12 +58,7 @@ public class CategoryBrandPanel extends JPanel {
     }
 
     private JPanel createCategoryPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(UIStyle.PANEL_BACKGROUND);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        JPanel panel = UIStyle.createCardPanel();
 
         JLabel title = UIStyle.createTitle("Category Management");
 
@@ -159,12 +155,7 @@ public class CategoryBrandPanel extends JPanel {
     }
 
     private JPanel createBrandPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(UIStyle.PANEL_BACKGROUND);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        JPanel panel = UIStyle.createCardPanel();
 
         JLabel title = UIStyle.createTitle("Brand Management");
 

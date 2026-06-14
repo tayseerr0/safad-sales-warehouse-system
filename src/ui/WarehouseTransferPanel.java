@@ -58,13 +58,10 @@ public class WarehouseTransferPanel extends JPanel {
     }
 
     private JPanel createHeaderPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 1));
-        panel.setBackground(UIStyle.BACKGROUND);
-
-        panel.add(UIStyle.createTitle("Warehouse Transfers"));
-        panel.add(UIStyle.createSubtitle("Move product quantities between warehouses."));
-
-        return panel;
+        return UIStyle.createHeaderPanel(
+                "Warehouse Transfers",
+                "Move product quantities between warehouses and review previous transfer records."
+        );
     }
 
     private JSplitPane createMainPanel() {
@@ -74,22 +71,13 @@ public class WarehouseTransferPanel extends JPanel {
                 createTransferHistoryPanel()
         );
 
-        splitPane.setResizeWeight(0.50);
-        splitPane.setOneTouchExpandable(true);
-        splitPane.setContinuousLayout(true);
-        splitPane.setDividerSize(8);
-        splitPane.setBorder(null);
+        UIStyle.styleSplitPane(splitPane, 0.50);
 
         return splitPane;
     }
 
     private JPanel createTransferFormPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(UIStyle.PANEL_BACKGROUND);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        JPanel panel = UIStyle.createCardPanel();
 
         panel.add(createTransferHeaderForm(), BorderLayout.NORTH);
         panel.add(createCurrentItemsPanel(), BorderLayout.CENTER);
@@ -196,12 +184,7 @@ public class WarehouseTransferPanel extends JPanel {
     }
 
     private JPanel createTransferHistoryPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(UIStyle.PANEL_BACKGROUND);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        JPanel panel = UIStyle.createCardPanel();
 
         JLabel title = new JLabel("Previous Transfers");
         title.setFont(new Font("Segoe UI", Font.BOLD, 16));
@@ -228,10 +211,7 @@ public class WarehouseTransferPanel extends JPanel {
                 new JScrollPane(transferItemsTable)
         );
 
-        verticalSplit.setResizeWeight(0.60);
-        verticalSplit.setOneTouchExpandable(true);
-        verticalSplit.setContinuousLayout(true);
-        verticalSplit.setDividerSize(8);
+        UIStyle.styleSplitPane(verticalSplit, 0.60);
 
         JPanel topButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         topButtons.setBackground(UIStyle.PANEL_BACKGROUND);

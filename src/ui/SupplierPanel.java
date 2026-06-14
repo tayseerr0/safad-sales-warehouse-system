@@ -57,13 +57,10 @@ public class SupplierPanel extends JPanel {
     }
 
     private JPanel createHeaderPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 1));
-        panel.setBackground(UIStyle.BACKGROUND);
-
-        panel.add(UIStyle.createTitle("Supplier Management"));
-        panel.add(UIStyle.createSubtitle("Manage suppliers and link them to the products they provide."));
-
-        return panel;
+        return UIStyle.createHeaderPanel(
+                "Supplier Management",
+                "Manage suppliers and link them to the products they provide."
+        );
     }
 
     private JSplitPane createMainPanel() {
@@ -73,22 +70,13 @@ public class SupplierPanel extends JPanel {
                 createSupplierProductPanel()
         );
 
-        splitPane.setResizeWeight(0.50);
-        splitPane.setOneTouchExpandable(true);
-        splitPane.setContinuousLayout(true);
-        splitPane.setDividerSize(8);
-        splitPane.setBorder(null);
+        UIStyle.styleSplitPane(splitPane, 0.50);
 
         return splitPane;
     }
 
     private JPanel createSupplierManagementPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(UIStyle.PANEL_BACKGROUND);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        JPanel panel = UIStyle.createCardPanel();
 
         JLabel title = UIStyle.createTitle("Suppliers");
 
@@ -203,12 +191,7 @@ public class SupplierPanel extends JPanel {
     }
 
     private JPanel createSupplierProductPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(UIStyle.PANEL_BACKGROUND);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        JPanel panel = UIStyle.createCardPanel();
 
         JLabel title = UIStyle.createTitle("Supplier Products");
 

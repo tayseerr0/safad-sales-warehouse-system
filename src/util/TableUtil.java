@@ -45,7 +45,7 @@ public class TableUtil {
 
     public static JButton createColumnVisibilityButton(JTable table, String buttonText) {
         JButton button = new JButton(buttonText);
-        UIStyle.stylePrimaryButton(button);
+        UIStyle.styleSecondaryButton(button);
         button.addActionListener(e -> showColumnVisibilityMenu(table, button));
         return button;
     }

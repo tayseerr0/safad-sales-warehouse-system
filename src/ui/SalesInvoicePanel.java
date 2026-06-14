@@ -62,13 +62,10 @@ public class SalesInvoicePanel extends JPanel {
     }
 
     private JPanel createHeaderPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 1));
-        panel.setBackground(UIStyle.BACKGROUND);
-
-        panel.add(UIStyle.createTitle("Sales Invoice Management"));
-        panel.add(UIStyle.createSubtitle("Create sales invoices, validate stock, and decrease inventory."));
-
-        return panel;
+        return UIStyle.createHeaderPanel(
+                "Sales Invoice Management",
+                "Create sales invoices, validate stock, and decrease inventory."
+        );
     }
 
     private JPanel createMainPanel() {
@@ -87,10 +84,8 @@ public class SalesInvoicePanel extends JPanel {
                 historyPanel
         );
 
-        splitPane.setResizeWeight(0.55);
+        UIStyle.styleSplitPane(splitPane, 0.55);
         splitPane.setDividerLocation(720);
-        splitPane.setOneTouchExpandable(true);
-        splitPane.setContinuousLayout(true);
 
         panel.add(splitPane, BorderLayout.CENTER);
 
@@ -98,12 +93,7 @@ public class SalesInvoicePanel extends JPanel {
     }
 
     private JPanel createInvoicePanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(UIStyle.PANEL_BACKGROUND);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        JPanel panel = UIStyle.createCardPanel();
 
         panel.add(createInvoiceHeaderForm(), BorderLayout.NORTH);
         panel.add(createItemSection(), BorderLayout.CENTER);
@@ -113,6 +103,10 @@ public class SalesInvoicePanel extends JPanel {
     }
 
     private JPanel createInvoiceHeaderForm() {
+        JPanel wrapper = new JPanel(new BorderLayout(10, 10));
+        wrapper.setBackground(UIStyle.PANEL_BACKGROUND);
+        wrapper.add(UIStyle.createSectionHeader("Invoice Details"), BorderLayout.NORTH);
+
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(UIStyle.PANEL_BACKGROUND);
 
@@ -134,14 +128,20 @@ public class SalesInvoicePanel extends JPanel {
         addField(panel, gbc, 1, 1, "Payment Type *", paymentTypeComboBox);
         addField(panel, gbc, 0, 2, "Payment *", paymentField);
 
-        return panel;
+        wrapper.add(panel, BorderLayout.CENTER);
+        return wrapper;
     }
 
     private JPanel createItemSection() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBackground(UIStyle.PANEL_BACKGROUND);
 
-        panel.add(createItemForm(), BorderLayout.NORTH);
+        JPanel topPanel = new JPanel(new BorderLayout(10, 10));
+        topPanel.setBackground(UIStyle.PANEL_BACKGROUND);
+        topPanel.add(UIStyle.createSectionHeader("Invoice Items"), BorderLayout.NORTH);
+        topPanel.add(createItemForm(), BorderLayout.CENTER);
+
+        panel.add(topPanel, BorderLayout.NORTH);
         panel.add(createItemTable(), BorderLayout.CENTER);
 
         return panel;
@@ -178,8 +178,8 @@ public class SalesInvoicePanel extends JPanel {
         JButton clearItemsButton = new JButton("Clear Items");
 
         UIStyle.stylePrimaryButton(addItemButton);
-        UIStyle.stylePrimaryButton(removeItemButton);
-        UIStyle.stylePrimaryButton(clearItemsButton);
+        UIStyle.styleSecondaryButton(removeItemButton);
+        UIStyle.styleSecondaryButton(clearItemsButton);
 
         addItemButton.addActionListener(e -> addItem());
         removeItemButton.addActionListener(e -> removeSelectedItem());
@@ -196,7 +196,8 @@ public class SalesInvoicePanel extends JPanel {
         gbc.gridy = 6;
         gbc.gridwidth = 2;
         panel.add(buttonPanel, gbc);
-        gbc.gridwidth = 1;        return panel;
+        gbc.gridwidth = 1;
+        return panel;
     }
 
     private JScrollPane createItemTable() {
@@ -206,7 +207,7 @@ public class SalesInvoicePanel extends JPanel {
         itemTable = new JTable(itemTableModel);
         TableUtil.setupTable(itemTable);
 
-        return new JScrollPane(itemTable);
+        return UIStyle.createTableScrollPane(itemTable);
     }
 
     private JPanel createSaveButtonPanel() {
@@ -217,7 +218,7 @@ public class SalesInvoicePanel extends JPanel {
         JButton clearButton = new JButton("Clear Invoice");
 
         UIStyle.stylePrimaryButton(saveButton);
-        UIStyle.stylePrimaryButton(clearButton);
+        UIStyle.styleSecondaryButton(clearButton);
 
         // Fix button text being cut
         saveButton.setPreferredSize(new Dimension(170, 38));
@@ -232,26 +233,25 @@ public class SalesInvoicePanel extends JPanel {
         return panel;
     }
     private JPanel createInvoiceHistoryPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(UIStyle.BACKGROUND);
+        JPanel panel = UIStyle.createCardPanel();
 
         JLabel title = UIStyle.createTitle("Sales Invoices");
         panel.add(title, BorderLayout.NORTH);
 
-        String[] columns = {"ID", "Date", "Client ID", "Warehouse ID", "Payment Type", "Payment", "Amount"};
+        String[] columns = {"ID", "Date", "Client", "Warehouse", "Payment Type", "Payment", "Amount"};
 
         invoiceTableModel = TableUtil.createNonEditableTableModel(columns);
         invoiceTable = new JTable(invoiceTableModel);
         TableUtil.setupTable(invoiceTable);
 
-        panel.add(new JScrollPane(invoiceTable), BorderLayout.CENTER);
+        panel.add(UIStyle.createTableScrollPane(invoiceTable), BorderLayout.CENTER);
 
         JButton refreshButton = new JButton("Refresh");
-        UIStyle.stylePrimaryButton(refreshButton);
+        UIStyle.styleSecondaryButton(refreshButton);
         refreshButton.addActionListener(e -> loadInvoices());
 
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        bottomPanel.setBackground(UIStyle.BACKGROUND);
+        bottomPanel.setBackground(UIStyle.PANEL_BACKGROUND);
         bottomPanel.add(refreshButton);
 
         panel.add(bottomPanel, BorderLayout.SOUTH);
@@ -545,13 +545,35 @@ public class SalesInvoicePanel extends JPanel {
             invoiceTableModel.addRow(new Object[]{
                     invoice.getSalesInvoiceId(),
                     invoice.getInvoiceDate(),
-                    invoice.getClientId(),
-                    invoice.getWarehouseId(),
+                    getClientDisplay(invoice.getClientId()),
+                    getWarehouseDisplay(invoice.getWarehouseId()),
                     invoice.getPaymentType(),
                     invoice.getPayment(),
                     invoice.getAmount()
             });
         }
+    }
+
+    private String getClientDisplay(int clientId) {
+        for (int i = 0; i < clientComboBox.getItemCount(); i++) {
+            Client client = clientComboBox.getItemAt(i);
+            if (client.getClientId() == clientId) {
+                return clientId + " - " + client.getClientName();
+            }
+        }
+
+        return String.valueOf(clientId);
+    }
+
+    private String getWarehouseDisplay(int warehouseId) {
+        for (int i = 0; i < warehouseComboBox.getItemCount(); i++) {
+            Warehouse warehouse = warehouseComboBox.getItemAt(i);
+            if (warehouse.getWarehouseId() == warehouseId) {
+                return warehouseId + " - " + warehouse.getWarehouseName();
+            }
+        }
+
+        return String.valueOf(warehouseId);
     }
 
     private void clearInvoice() {

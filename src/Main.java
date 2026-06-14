@@ -3,21 +3,23 @@ import ui.MainFrame;
 
 import javax.swing.*;
 
+public class Main {
 
-public static void main(String[] args) {
+    public static void main(String[] args) {
 
-    if (!DBConnection.testConnection()) {
-        JOptionPane.showMessageDialog(
-                null,
-                "Failed to connect to SAFAD database.\nPlease check MySQL server, database name, username, and password.",
-                "Database Connection Error",
-                JOptionPane.ERROR_MESSAGE
-        );
-        return;
+        if (!DBConnection.testConnection()) {
+            JOptionPane.showMessageDialog(
+                    null,
+                    "Failed to connect to SAFAD database.\nPlease check MySQL server, database name, username, and password.",
+                    "Database Connection Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
+        SwingUtilities.invokeLater(() -> {
+            MainFrame frame = new MainFrame();
+            frame.setVisible(true);
+        });
     }
-
-    SwingUtilities.invokeLater(() -> {
-        MainFrame frame = new MainFrame();
-        frame.setVisible(true);
-    });
 }

@@ -72,13 +72,10 @@ public class PurchaseInvoicePanel extends JPanel {
     }
 
     private JPanel createHeaderPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 1));
-        panel.setBackground(UIStyle.BACKGROUND);
-
-        panel.add(UIStyle.createTitle("Purchase Invoices"));
-        panel.add(UIStyle.createSubtitle("Create, view, and update supplier purchase invoices. Drag the dividers to resize views."));
-
-        return panel;
+        return UIStyle.createHeaderPanel(
+                "Purchase Invoices",
+                "Create, view, and update supplier purchase invoices."
+        );
     }
 
     private JSplitPane createMainPanel() {
@@ -88,22 +85,13 @@ public class PurchaseInvoicePanel extends JPanel {
                 createInvoiceHistoryPanel()
         );
 
-        splitPane.setResizeWeight(0.52);
-        splitPane.setOneTouchExpandable(true);
-        splitPane.setContinuousLayout(true);
-        splitPane.setDividerSize(8);
-        splitPane.setBorder(null);
+        UIStyle.styleSplitPane(splitPane, 0.52);
 
         return splitPane;
     }
 
     private JPanel createInvoiceCreationPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(UIStyle.PANEL_BACKGROUND);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        JPanel panel = UIStyle.createCardPanel();
 
         JPanel topPanel = new JPanel(new BorderLayout(10, 10));
         topPanel.setBackground(UIStyle.PANEL_BACKGROUND);
@@ -123,6 +111,7 @@ public class PurchaseInvoicePanel extends JPanel {
 
         modeLabel = new JLabel("Mode: New Purchase Invoice");
         modeLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        modeLabel.setForeground(UIStyle.TEXT_DARK);
 
         JPanel formPanel = new JPanel(new GridLayout(6, 2, 8, 8));
         formPanel.setBackground(UIStyle.PANEL_BACKGROUND);
@@ -155,7 +144,12 @@ public class PurchaseInvoicePanel extends JPanel {
         formPanel.add(new JLabel("Payment Type:"));
         formPanel.add(paymentTypeComboBox);
 
-        wrapper.add(modeLabel, BorderLayout.NORTH);
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(UIStyle.PANEL_BACKGROUND);
+        headerPanel.add(UIStyle.createSectionHeader("Invoice Details"), BorderLayout.WEST);
+        headerPanel.add(modeLabel, BorderLayout.EAST);
+
+        wrapper.add(headerPanel, BorderLayout.NORTH);
         wrapper.add(formPanel, BorderLayout.CENTER);
 
         return wrapper;
@@ -165,9 +159,6 @@ public class PurchaseInvoicePanel extends JPanel {
         JPanel wrapper = new JPanel(new BorderLayout(8, 8));
         wrapper.setBackground(UIStyle.PANEL_BACKGROUND);
         wrapper.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
-
-        JLabel title = new JLabel("Invoice Items");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
 
         JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 10));
         formPanel.setBackground(UIStyle.PANEL_BACKGROUND);
@@ -195,8 +186,8 @@ public class PurchaseInvoicePanel extends JPanel {
         JButton clearItemsButton = new JButton("Clear Items");
 
         UIStyle.stylePrimaryButton(addItemButton);
-        UIStyle.stylePrimaryButton(removeItemButton);
-        UIStyle.stylePrimaryButton(clearItemsButton);
+        UIStyle.styleSecondaryButton(removeItemButton);
+        UIStyle.styleSecondaryButton(clearItemsButton);
 
         addItemButton.addActionListener(e -> addItem());
         removeItemButton.addActionListener(e -> removeSelectedItem());
@@ -206,7 +197,7 @@ public class PurchaseInvoicePanel extends JPanel {
         buttonPanel.add(removeItemButton);
         buttonPanel.add(clearItemsButton);
 
-        wrapper.add(title, BorderLayout.NORTH);
+        wrapper.add(UIStyle.createSectionHeader("Invoice Items"), BorderLayout.NORTH);
         wrapper.add(formPanel, BorderLayout.CENTER);
         wrapper.add(buttonPanel, BorderLayout.SOUTH);
 
@@ -227,7 +218,7 @@ public class PurchaseInvoicePanel extends JPanel {
         topPanel.add(TableUtil.createColumnVisibilityButton(itemTable, "Columns"));
 
         panel.add(topPanel, BorderLayout.NORTH);
-        panel.add(new JScrollPane(itemTable), BorderLayout.CENTER);
+        panel.add(UIStyle.createTableScrollPane(itemTable), BorderLayout.CENTER);
 
         totalAmountLabel = new JLabel("Total Amount: 0.00");
         totalAmountLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
@@ -247,8 +238,8 @@ public class PurchaseInvoicePanel extends JPanel {
 
         UIStyle.stylePrimaryButton(saveButton);
         UIStyle.stylePrimaryButton(updateButton);
-        UIStyle.stylePrimaryButton(newButton);
-        UIStyle.stylePrimaryButton(refreshButton);
+        UIStyle.styleSecondaryButton(newButton);
+        UIStyle.styleSecondaryButton(refreshButton);
 
         saveButton.addActionListener(e -> saveNewInvoice());
         updateButton.addActionListener(e -> updateExistingInvoice());
@@ -268,14 +259,9 @@ public class PurchaseInvoicePanel extends JPanel {
     }
 
     private JPanel createInvoiceHistoryPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(UIStyle.PANEL_BACKGROUND);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        JPanel panel = UIStyle.createCardPanel();
 
-        JLabel title = UIStyle.createTitle("Purchase Invoice History");
+        JPanel title = UIStyle.createSectionHeader("Purchase Invoice History");
 
         String[] invoiceColumns = {"Invoice ID", "Date", "Estimated Arrival", "Supplier", "Warehouse", "Payment", "Payment Type", "Amount"};
         invoiceTableModel = TableUtil.createNonEditableTableModel(invoiceColumns);
@@ -305,24 +291,20 @@ public class PurchaseInvoicePanel extends JPanel {
         JPanel invoicePanel = new JPanel(new BorderLayout(8, 8));
         invoicePanel.setBackground(UIStyle.PANEL_BACKGROUND);
         invoicePanel.add(invoiceButtons, BorderLayout.NORTH);
-        invoicePanel.add(new JScrollPane(invoiceTable), BorderLayout.CENTER);
+        invoicePanel.add(UIStyle.createTableScrollPane(invoiceTable), BorderLayout.CENTER);
 
         JPanel itemButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         itemButtons.setBackground(UIStyle.PANEL_BACKGROUND);
-        itemButtons.add(new JLabel("Selected Invoice Items"));
+        itemButtons.add(UIStyle.createSectionHeader("Selected Invoice Items"));
         itemButtons.add(TableUtil.createColumnVisibilityButton(previousItemsTable, "Item Columns"));
 
         JPanel itemPanel = new JPanel(new BorderLayout(8, 8));
         itemPanel.setBackground(UIStyle.PANEL_BACKGROUND);
         itemPanel.add(itemButtons, BorderLayout.NORTH);
-        itemPanel.add(new JScrollPane(previousItemsTable), BorderLayout.CENTER);
+        itemPanel.add(UIStyle.createTableScrollPane(previousItemsTable), BorderLayout.CENTER);
 
         JSplitPane verticalSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, invoicePanel, itemPanel);
-        verticalSplit.setResizeWeight(0.55);
-        verticalSplit.setOneTouchExpandable(true);
-        verticalSplit.setContinuousLayout(true);
-        verticalSplit.setDividerSize(8);
-        verticalSplit.setBorder(null);
+        UIStyle.styleSplitPane(verticalSplit, 0.55);
 
         panel.add(title, BorderLayout.NORTH);
         panel.add(verticalSplit, BorderLayout.CENTER);

@@ -46,11 +46,10 @@ public class ProductPanel extends JPanel {
     }
 
     private JPanel createHeaderPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 1));
-        panel.setBackground(UIStyle.BACKGROUND);
-        panel.add(UIStyle.createTitle("Product Management"));
-        panel.add(UIStyle.createSubtitle("Manage products, combine filters, and choose visible columns."));
-        return panel;
+        return UIStyle.createHeaderPanel(
+                "Product Management",
+                "Manage products, combine filters, and choose visible columns."
+        );
     }
 
     private JPanel createMainPanel() {
@@ -63,12 +62,7 @@ public class ProductPanel extends JPanel {
     }
 
     private JPanel createFormPanel() {
-        JPanel wrapper = new JPanel(new BorderLayout(10, 10));
-        wrapper.setBackground(UIStyle.PANEL_BACKGROUND);
-        wrapper.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        JPanel wrapper = UIStyle.createCardPanel();
 
         JPanel formPanel = new JPanel(new GridLayout(3, 4, 10, 10));
         formPanel.setBackground(UIStyle.PANEL_BACKGROUND);
@@ -140,12 +134,7 @@ public class ProductPanel extends JPanel {
     }
 
     private JPanel createTablePanel() {
-        JPanel panel = new JPanel(new BorderLayout(8, 8));
-        panel.setBackground(UIStyle.PANEL_BACKGROUND);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
+        JPanel panel = UIStyle.createCardPanel();
 
         String[] columns = {"ID", "Product Name", "Description", "Price", "Category ID", "Category", "Brand ID", "Brand"};
 
@@ -168,12 +157,7 @@ public class ProductPanel extends JPanel {
     }
 
     private JPanel createFilterPanel() {
-        JPanel wrapper = new JPanel(new BorderLayout(8, 8));
-        wrapper.setBackground(UIStyle.PANEL_BACKGROUND);
-        wrapper.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(12, 12, 12, 12)
-        ));
+        JPanel wrapper = UIStyle.createCardPanel();
 
         JLabel title = new JLabel("Advanced Filters");
         title.setFont(new Font("Segoe UI", Font.BOLD, 15));

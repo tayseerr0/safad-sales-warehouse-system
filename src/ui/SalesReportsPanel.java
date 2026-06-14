@@ -20,6 +20,9 @@ public class SalesReportsPanel extends JPanel {
     private JTextField startDateField;
     private JTextField endDateField;
     private JTextField yearField;
+    private JPanel startDateFilterPanel;
+    private JPanel endDateFilterPanel;
+    private JPanel yearFilterPanel;
 
     private JTable reportTable;
     private DefaultTableModel tableModel;
@@ -37,13 +40,10 @@ public class SalesReportsPanel extends JPanel {
     }
 
     private JPanel createHeaderPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 1));
-        panel.setBackground(UIStyle.BACKGROUND);
-
-        panel.add(UIStyle.createTitle("Sales Reports"));
-        panel.add(UIStyle.createSubtitle("Advanced sales reports using joins, filtering, aggregation, and summaries."));
-
-        return panel;
+        return UIStyle.createHeaderPanel(
+                "Sales Reports",
+                "Advanced sales reports using joins, filtering, aggregation, and summaries."
+        );
     }
 
     private JPanel createMainPanel() {
@@ -58,16 +58,8 @@ public class SalesReportsPanel extends JPanel {
     }
 
     private JPanel createFilterPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(UIStyle.PANEL_BACKGROUND);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 8, 6, 8);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        JPanel panel = UIStyle.createCardPanel();
+        panel.setLayout(new FlowLayout(FlowLayout.LEFT, 12, 8));
 
         reportComboBox = new JComboBox<>(new String[]{
                 "Total Sales Between Dates",
@@ -95,42 +87,58 @@ public class SalesReportsPanel extends JPanel {
         UIStyle.stylePrimaryButton(runButton);
         UIStyle.stylePrimaryButton(clearButton);
 
+        startDateFilterPanel = createFilterField("Start Date", startDateField);
+        endDateFilterPanel = createFilterField("End Date", endDateField);
+        yearFilterPanel = createFilterField("Year", yearField);
+
+        panel.add(createFilterField("Report", reportComboBox));
+        panel.add(startDateFilterPanel);
+        panel.add(endDateFilterPanel);
+        panel.add(yearFilterPanel);
+        panel.add(runButton);
+        panel.add(clearButton);
+
+        reportComboBox.addActionListener(e -> updateFilterVisibility());
         runButton.addActionListener(e -> runSelectedReport());
         clearButton.addActionListener(e -> clearReport());
-
-        addFilterField(panel, gbc, 0, "Report", reportComboBox);
-        addFilterField(panel, gbc, 1, "Start Date", startDateField);
-        addFilterField(panel, gbc, 2, "End Date", endDateField);
-        addFilterField(panel, gbc, 3, "Year", yearField);
-
-        gbc.gridx = 4;
-        gbc.gridy = 1;
-        panel.add(runButton, gbc);
-
-        gbc.gridx = 5;
-        gbc.gridy = 1;
-        panel.add(clearButton, gbc);
+        updateFilterVisibility();
 
         return panel;
     }
 
-    private void addFilterField(JPanel panel, GridBagConstraints gbc, int x, String labelText, JComponent field) {
+    private JPanel createFilterField(String labelText, JComponent field) {
+        JPanel panel = new JPanel(new BorderLayout(4, 4));
+        panel.setBackground(UIStyle.PANEL_BACKGROUND);
+
         JLabel label = new JLabel(labelText);
-        label.setFont(UIStyle.LABEL_FONT);
-        label.setForeground(UIStyle.TEXT_DARK);
+        UIStyle.styleLabel(label);
 
-        gbc.gridx = x;
-        gbc.gridy = 0;
-        panel.add(label, gbc);
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(field, BorderLayout.CENTER);
 
-        gbc.gridx = x;
-        gbc.gridy = 1;
-        panel.add(field, gbc);
+        return panel;
+    }
+
+    private void updateFilterVisibility() {
+        if (reportComboBox == null || startDateFilterPanel == null) {
+            return;
+        }
+
+        String selectedReport = String.valueOf(reportComboBox.getSelectedItem());
+
+        boolean needsYear = selectedReport.equals("Monthly Sales");
+        boolean needsDates = !needsYear && !selectedReport.equals("Valid Warranty Items");
+
+        startDateFilterPanel.setVisible(needsDates);
+        endDateFilterPanel.setVisible(needsDates);
+        yearFilterPanel.setVisible(needsYear);
+
+        revalidate();
+        repaint();
     }
 
     private JPanel createTablePanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        panel.setBackground(UIStyle.BACKGROUND);
+        JPanel panel = UIStyle.createCardPanel();
 
         tableModel = TableUtil.createNonEditableTableModel(new String[]{"Result"});
         reportTable = new JTable(tableModel);
@@ -142,12 +150,8 @@ public class SalesReportsPanel extends JPanel {
     }
 
     private JPanel createSummaryPanel() {
-        summaryPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        summaryPanel.setBackground(UIStyle.PANEL_BACKGROUND);
-        summaryPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(10, 15, 10, 15)
-        ));
+        summaryPanel = UIStyle.createCardPanel();
+        summaryPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
 
         summaryLabel = new JLabel("Select a report and click Run Report.");
         summaryLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -325,5 +329,6 @@ public class SalesReportsPanel extends JPanel {
         startDateField.setText("2026-01-01");
         endDateField.setText("2026-12-31");
         yearField.setText("2026");
+        updateFilterVisibility();
     }
 }

@@ -148,7 +148,7 @@ public class PurchaseReportDAO {
         return runQuery(sql);
     }
 
-    public DefaultTableModel getLowStockProducts(int warehouseId, int threshold) {
+    public DefaultTableModel getLowStockProducts(int warehouseId) {
         String sql = """
                 SELECT w.warehouse_name AS 'Warehouse',
                        p.product_id AS 'Product ID',
@@ -156,19 +156,18 @@ public class PurchaseReportDAO {
                        c.category_name AS 'Category',
                        b.brand_name AS 'Brand',
                        i.quantity AS 'Current Quantity',
-                       i.threshold AS 'Saved Threshold',
-                       ? AS 'Report Threshold'
+                       i.threshold AS 'Threshold'
                 FROM Inventory i
                 JOIN Warehouse w ON i.warehouse_id = w.warehouse_id
                 JOIN Product p ON i.product_id = p.product_id
                 JOIN Category c ON p.category_id = c.category_id
                 JOIN Brand b ON p.brand_id = b.brand_id
                 WHERE i.warehouse_id = ?
-                  AND i.quantity < ?
+                  AND i.quantity < i.threshold
                 ORDER BY i.quantity, p.product_name
                 """;
 
-        return runQuery(sql, threshold, warehouseId, threshold);
+        return runQuery(sql, warehouseId);
     }
 
     public DefaultTableModel getTotalPurchaseAmountPerSupplier() {

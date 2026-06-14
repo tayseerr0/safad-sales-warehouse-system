@@ -4,7 +4,6 @@ import dao.PurchaseReportDAO;
 import dao.PurchaseReportDAO.ComboOption;
 import util.MessageUtil;
 import util.TableUtil;
-import util.ValidationUtil;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -27,7 +26,13 @@ public class PurchaseReportsPanel extends JPanel {
 
     private JTextField fromDateField;
     private JTextField toDateField;
-    private JTextField thresholdField;
+
+    private JPanel supplierFilterPanel;
+    private JPanel warehouseFilterPanel;
+    private JPanel productFilterPanel;
+    private JPanel invoiceFilterPanel;
+    private JPanel fromDateFilterPanel;
+    private JPanel toDateFilterPanel;
 
     private JTable reportTable;
     private DefaultTableModel reportTableModel;
@@ -58,13 +63,10 @@ public class PurchaseReportsPanel extends JPanel {
     }
 
     private JPanel createHeaderPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 1));
-        panel.setBackground(UIStyle.BACKGROUND);
-
-        panel.add(UIStyle.createTitle("Purchase Reports"));
-        panel.add(UIStyle.createSubtitle("Advanced purchase, supplier, product, and inventory reports with charts."));
-
-        return panel;
+        return UIStyle.createHeaderPanel(
+                "Purchase Reports",
+                "Advanced purchase, supplier, product, and inventory reports with charts."
+        );
     }
 
     private JPanel createMainPanel() {
@@ -78,14 +80,9 @@ public class PurchaseReportsPanel extends JPanel {
     }
 
     private JPanel createFilterPanel() {
-        JPanel wrapper = new JPanel(new BorderLayout(8, 8));
-        wrapper.setBackground(UIStyle.PANEL_BACKGROUND);
-        wrapper.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        JPanel wrapper = UIStyle.createCardPanel();
 
-        JPanel formPanel = new JPanel(new GridLayout(4, 4, 8, 8));
+        JPanel formPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
         formPanel.setBackground(UIStyle.PANEL_BACKGROUND);
 
         reportComboBox = new JComboBox<>(new String[]{
@@ -108,7 +105,6 @@ public class PurchaseReportsPanel extends JPanel {
 
         fromDateField = new JTextField("2026-01-01");
         toDateField = new JTextField(LocalDate.now().toString());
-        thresholdField = new JTextField("10");
 
         UIStyle.styleComboBox(reportComboBox);
         UIStyle.styleComboBox(supplierComboBox);
@@ -117,27 +113,22 @@ public class PurchaseReportsPanel extends JPanel {
         UIStyle.styleComboBox(invoiceComboBox);
         UIStyle.styleTextField(fromDateField);
         UIStyle.styleTextField(toDateField);
-        UIStyle.styleTextField(thresholdField);
 
-        formPanel.add(new JLabel("Report:"));
-        formPanel.add(reportComboBox);
-        formPanel.add(new JLabel("Supplier:"));
-        formPanel.add(supplierComboBox);
+        JPanel reportFilterPanel = createFilterField("Report", reportComboBox);
+        supplierFilterPanel = createFilterField("Supplier", supplierComboBox);
+        warehouseFilterPanel = createFilterField("Warehouse", warehouseComboBox);
+        productFilterPanel = createFilterField("Product", productComboBox);
+        invoiceFilterPanel = createFilterField("Purchase Invoice", invoiceComboBox);
+        fromDateFilterPanel = createFilterField("From Date", fromDateField);
+        toDateFilterPanel = createFilterField("To Date", toDateField);
 
-        formPanel.add(new JLabel("Warehouse:"));
-        formPanel.add(warehouseComboBox);
-        formPanel.add(new JLabel("Product:"));
-        formPanel.add(productComboBox);
-
-        formPanel.add(new JLabel("Purchase Invoice:"));
-        formPanel.add(invoiceComboBox);
-        formPanel.add(new JLabel("Threshold:"));
-        formPanel.add(thresholdField);
-
-        formPanel.add(new JLabel("From Date:"));
-        formPanel.add(fromDateField);
-        formPanel.add(new JLabel("To Date:"));
-        formPanel.add(toDateField);
+        formPanel.add(reportFilterPanel);
+        formPanel.add(supplierFilterPanel);
+        formPanel.add(warehouseFilterPanel);
+        formPanel.add(productFilterPanel);
+        formPanel.add(invoiceFilterPanel);
+        formPanel.add(fromDateFilterPanel);
+        formPanel.add(toDateFilterPanel);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setBackground(UIStyle.PANEL_BACKGROUND);
@@ -150,6 +141,7 @@ public class PurchaseReportsPanel extends JPanel {
         UIStyle.stylePrimaryButton(refreshButton);
         UIStyle.stylePrimaryButton(clearButton);
 
+        reportComboBox.addActionListener(e -> updateFilterVisibility());
         runButton.addActionListener(e -> runSelectedReport());
         refreshButton.addActionListener(e -> loadFilterData());
         clearButton.addActionListener(e -> chartPanel.clearChart());
@@ -161,16 +153,56 @@ public class PurchaseReportsPanel extends JPanel {
         wrapper.add(formPanel, BorderLayout.CENTER);
         wrapper.add(buttonPanel, BorderLayout.SOUTH);
 
+        updateFilterVisibility();
+
         return wrapper;
     }
 
+    private JPanel createFilterField(String labelText, JComponent field) {
+        JPanel panel = new JPanel(new BorderLayout(4, 4));
+        panel.setBackground(UIStyle.PANEL_BACKGROUND);
+
+        JLabel label = new JLabel(labelText);
+        UIStyle.styleLabel(label);
+
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(field, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private void updateFilterVisibility() {
+        if (supplierFilterPanel == null || reportComboBox == null) {
+            return;
+        }
+
+        String report = String.valueOf(reportComboBox.getSelectedItem());
+
+        supplierFilterPanel.setVisible(false);
+        warehouseFilterPanel.setVisible(false);
+        productFilterPanel.setVisible(false);
+        invoiceFilterPanel.setVisible(false);
+        fromDateFilterPanel.setVisible(false);
+        toDateFilterPanel.setVisible(false);
+
+        switch (report) {
+            case PRODUCTS_IN_WAREHOUSE -> warehouseFilterPanel.setVisible(true);
+            case SUPPLIERS_FOR_PRODUCT -> productFilterPanel.setVisible(true);
+            case PURCHASES_BY_SUPPLIER_DATE -> {
+                supplierFilterPanel.setVisible(true);
+                fromDateFilterPanel.setVisible(true);
+                toDateFilterPanel.setVisible(true);
+            }
+            case PURCHASE_INVOICE_DETAILS -> invoiceFilterPanel.setVisible(true);
+            case LOW_STOCK -> warehouseFilterPanel.setVisible(true);
+        }
+
+        revalidate();
+        repaint();
+    }
+
     private JSplitPane createReportViewPanel() {
-        JPanel tablePanel = new JPanel(new BorderLayout(8, 8));
-        tablePanel.setBackground(UIStyle.PANEL_BACKGROUND);
-        tablePanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(229, 231, 235)),
-                BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
+        JPanel tablePanel = UIStyle.createCardPanel();
 
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.setBackground(UIStyle.PANEL_BACKGROUND);
@@ -199,11 +231,7 @@ public class PurchaseReportsPanel extends JPanel {
                 chartPanel
         );
 
-        splitPane.setResizeWeight(0.65);
-        splitPane.setOneTouchExpandable(true);
-        splitPane.setContinuousLayout(true);
-        splitPane.setDividerSize(8);
-        splitPane.setBorder(null);
+        UIStyle.styleSplitPane(splitPane, 0.65);
 
         return splitPane;
     }
@@ -279,13 +307,7 @@ public class PurchaseReportsPanel extends JPanel {
                 ComboOption warehouseForLowStock = getSelectedOption(warehouseComboBox, "Select a warehouse.");
                 if (warehouseForLowStock == null) return;
 
-                if (!ValidationUtil.isNonNegativeInteger(thresholdField.getText())) {
-                    MessageUtil.showError("Threshold must be a non-negative integer.");
-                    return;
-                }
-
-                int threshold = Integer.parseInt(thresholdField.getText().trim());
-                model = reportDAO.getLowStockProducts(warehouseForLowStock.getId(), threshold);
+                model = reportDAO.getLowStockProducts(warehouseForLowStock.getId());
                 break;
 
             case TOTAL_AMOUNT_SUPPLIER:
@@ -426,7 +448,7 @@ public class PurchaseReportsPanel extends JPanel {
         public SimpleBarChartPanel() {
             setBackground(UIStyle.PANEL_BACKGROUND);
             setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(229, 231, 235)),
+                    BorderFactory.createLineBorder(UIStyle.BORDER),
                     BorderFactory.createEmptyBorder(15, 15, 15, 15)
             ));
             setPreferredSize(new Dimension(800, 220));
