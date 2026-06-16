@@ -23,6 +23,7 @@ public class PurchaseInvoiceDAO {
             try {
                 conn.setAutoCommit(false);
                 validateInvoice(invoice);
+                validateWarehouseCapacity(conn, invoice);
                 invoice.setAmount(calculateInvoiceAmount(invoice.getItems()));
 
                 int invoiceId = insertPurchaseInvoiceHeader(conn, invoice);
@@ -76,6 +77,7 @@ public class PurchaseInvoiceDAO {
                     }
                 }
 
+                validateWarehouseCapacity(conn, updatedInvoice);
                 updatedInvoice.setAmount(calculateInvoiceAmount(updatedInvoice.getItems()));
 
                 deletePurchaseInvoiceItems(conn, updatedInvoice.getPurchaseInvoiceId());
@@ -105,6 +107,44 @@ public class PurchaseInvoiceDAO {
         }
     }
 
+    public boolean deletePurchaseInvoice(int purchaseInvoiceId) {
+        if (purchaseInvoiceId <= 0) {
+            System.out.println("Valid purchase invoice ID is required for delete.");
+            return false;
+        }
+
+        try (Connection conn = DBConnection.getConnection()) {
+            try {
+                conn.setAutoCommit(false);
+
+                PurchaseInvoice oldInvoice = getPurchaseInvoiceById(conn, purchaseInvoiceId);
+                if (oldInvoice == null) throw new SQLException("Purchase invoice not found.");
+
+                for (PurchaseInvoiceItem oldItem : oldInvoice.getItems()) {
+                    if (!inventoryDAO.decreaseStock(conn, oldItem.getProductId(), oldInvoice.getWarehouseId(), oldItem.getQuantity())) {
+                        throw new SQLException("Cannot delete invoice because purchased stock for product ID " + oldItem.getProductId() + " is no longer available.");
+                    }
+                }
+
+                deletePurchaseInvoiceItems(conn, purchaseInvoiceId);
+                deletePurchaseInvoiceHeader(conn, purchaseInvoiceId);
+
+                conn.commit();
+                return true;
+            } catch (Exception e) {
+                conn.rollback();
+                System.out.println("Purchase invoice delete failed. Rolled back changes.");
+                System.out.println(e.getMessage());
+                return false;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            System.out.println("Database error while deleting purchase invoice: " + e.getMessage());
+            return false;
+        }
+    }
+
     private void validateInvoice(PurchaseInvoice invoice) {
         if (invoice.getInvoiceDate() == null) throw new IllegalArgumentException("Invoice date is required.");
         if (invoice.getPayment() == null || invoice.getPayment().compareTo(BigDecimal.ZERO) < 0) throw new IllegalArgumentException("Payment must be non-negative.");
@@ -123,6 +163,39 @@ public class PurchaseInvoiceDAO {
         BigDecimal total = BigDecimal.ZERO;
         for (PurchaseInvoiceItem item : items) {
             total = total.add(item.getPurchasePrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+        }
+        return total;
+    }
+
+    private void validateWarehouseCapacity(Connection conn, PurchaseInvoice invoice) throws SQLException {
+        int capacity = getWarehouseCapacity(conn, invoice.getWarehouseId());
+        int currentQuantity = inventoryDAO.getWarehouseTotalQuantity(conn, invoice.getWarehouseId());
+        int incomingQuantity = totalQuantity(invoice.getItems());
+
+        if (capacity > 0 && currentQuantity + incomingQuantity > capacity) {
+            throw new SQLException("Warehouse capacity exceeded. Capacity: " + capacity
+                    + ", current quantity: " + currentQuantity
+                    + ", incoming quantity: " + incomingQuantity + ".");
+        }
+    }
+
+    private int getWarehouseCapacity(Connection conn, int warehouseId) throws SQLException {
+        String sql = "SELECT capacity FROM Warehouse WHERE warehouse_id = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, warehouseId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return rs.getInt("capacity");
+                throw new SQLException("Warehouse not found.");
+            }
+        }
+    }
+
+    private int totalQuantity(List<PurchaseInvoiceItem> items) {
+        int total = 0;
+        for (PurchaseInvoiceItem item : items) {
+            total += item.getQuantity();
         }
         return total;
     }
@@ -197,6 +270,14 @@ public class PurchaseInvoiceDAO {
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, purchaseInvoiceId);
             stmt.executeUpdate();
+        }
+    }
+
+    private void deletePurchaseInvoiceHeader(Connection conn, int purchaseInvoiceId) throws SQLException {
+        String sql = "DELETE FROM PurchaseInvoice WHERE purchase_invoice_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, purchaseInvoiceId);
+            if (stmt.executeUpdate() == 0) throw new SQLException("Deleting purchase invoice failed.");
         }
     }
 

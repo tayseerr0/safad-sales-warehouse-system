@@ -46,6 +46,56 @@ public class SalesReportDAO {
         return rows;
     }
 
+    public List<Object[]> getSalesInvoicesBetweenDates(Date startDate, Date endDate) {
+        List<Object[]> rows = new ArrayList<>();
+
+        String sql = """
+                SELECT
+                    si.sales_invoice_id,
+                    si.invoice_date,
+                    c.client_id,
+                    c.client_name,
+                    w.warehouse_id,
+                    w.warehouse_name,
+                    si.payment_type,
+                    si.payment,
+                    si.amount
+                FROM SalesInvoice si
+                JOIN Client c ON si.client_id = c.client_id
+                JOIN Warehouse w ON si.warehouse_id = w.warehouse_id
+                WHERE si.invoice_date BETWEEN ? AND ?
+                ORDER BY si.invoice_date DESC, si.sales_invoice_id DESC
+                """;
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDate(1, startDate);
+            stmt.setDate(2, endDate);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new Object[]{
+                            rs.getInt("sales_invoice_id"),
+                            rs.getDate("invoice_date"),
+                            rs.getInt("client_id"),
+                            rs.getString("client_name"),
+                            rs.getInt("warehouse_id"),
+                            rs.getString("warehouse_name"),
+                            rs.getString("payment_type"),
+                            rs.getBigDecimal("payment"),
+                            rs.getBigDecimal("amount")
+                    });
+                }
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error getting sales invoices between dates: " + e.getMessage());
+        }
+
+        return rows;
+    }
+
     public List<Object[]> getMonthlySales(int year) {
         List<Object[]> rows = new ArrayList<>();
 
@@ -199,6 +249,60 @@ public class SalesReportDAO {
 
         } catch (SQLException e) {
             System.out.println("Error getting sales by warehouse: " + e.getMessage());
+        }
+
+        return rows;
+    }
+
+    public List<Object[]> getSalesInvoicesByWarehouse(Date startDate, Date endDate) {
+        List<Object[]> rows = new ArrayList<>();
+
+        String sql = """
+                SELECT
+                    w.warehouse_id,
+                    w.warehouse_name,
+                    si.sales_invoice_id,
+                    si.invoice_date,
+                    c.client_name,
+                    si.amount AS invoice_amount,
+                    totals.warehouse_total
+                FROM SalesInvoice si
+                JOIN Warehouse w ON si.warehouse_id = w.warehouse_id
+                JOIN Client c ON si.client_id = c.client_id
+                JOIN (
+                    SELECT warehouse_id, COALESCE(SUM(amount), 0) AS warehouse_total
+                    FROM SalesInvoice
+                    WHERE invoice_date BETWEEN ? AND ?
+                    GROUP BY warehouse_id
+                ) totals ON totals.warehouse_id = si.warehouse_id
+                WHERE si.invoice_date BETWEEN ? AND ?
+                ORDER BY w.warehouse_name, si.invoice_date DESC, si.sales_invoice_id DESC
+                """;
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDate(1, startDate);
+            stmt.setDate(2, endDate);
+            stmt.setDate(3, startDate);
+            stmt.setDate(4, endDate);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new Object[]{
+                            rs.getInt("warehouse_id"),
+                            rs.getString("warehouse_name"),
+                            rs.getInt("sales_invoice_id"),
+                            rs.getDate("invoice_date"),
+                            rs.getString("client_name"),
+                            rs.getBigDecimal("invoice_amount"),
+                            rs.getBigDecimal("warehouse_total")
+                    });
+                }
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error getting sales invoices by warehouse: " + e.getMessage());
         }
 
         return rows;

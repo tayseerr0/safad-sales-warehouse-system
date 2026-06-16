@@ -75,6 +75,61 @@ public class WarehouseTransferDAO {
         }
     }
 
+    public boolean updateTransfer(WarehouseTransfer updatedTransfer) {
+        if (updatedTransfer == null || updatedTransfer.getTransferId() <= 0) {
+            System.out.println("Valid transfer ID is required for update.");
+            return false;
+        }
+
+        if (updatedTransfer.getItems() == null || updatedTransfer.getItems().isEmpty()) {
+            System.out.println("Transfer must contain at least one item.");
+            return false;
+        }
+
+        try (Connection conn = DBConnection.getConnection()) {
+            try {
+                conn.setAutoCommit(false);
+
+                WarehouseTransfer oldTransfer = getTransferById(conn, updatedTransfer.getTransferId());
+                if (oldTransfer == null) throw new SQLException("Transfer not found.");
+
+                // Reverse old transfer.
+                for (WarehouseTransferItem oldItem : oldTransfer.getItems()) {
+                    if (!inventoryDAO.decreaseStock(conn, oldItem.getProductId(), oldTransfer.getToWarehouseId(), oldItem.getQuantity())) {
+                        throw new SQLException("Cannot reverse destination stock for product ID " + oldItem.getProductId());
+                    }
+                    if (!inventoryDAO.increaseStock(conn, oldItem.getProductId(), oldTransfer.getFromWarehouseId(), oldItem.getQuantity())) {
+                        throw new SQLException("Cannot restore source stock for product ID " + oldItem.getProductId());
+                    }
+                }
+
+                validateTransferItems(conn, updatedTransfer);
+                updateTransferHeader(conn, updatedTransfer);
+                deleteTransferItems(conn, updatedTransfer.getTransferId());
+
+                for (WarehouseTransferItem item : updatedTransfer.getItems()) {
+                    insertTransferItem(conn, updatedTransfer.getTransferId(), item);
+                    inventoryDAO.decreaseStock(conn, item.getProductId(), updatedTransfer.getFromWarehouseId(), item.getQuantity());
+                    inventoryDAO.increaseStock(conn, item.getProductId(), updatedTransfer.getToWarehouseId(), item.getQuantity());
+                }
+
+                conn.commit();
+                return true;
+            } catch (Exception e) {
+                conn.rollback();
+                System.out.println("Transfer update failed. Rolled back changes.");
+                System.out.println(e.getMessage());
+                return false;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Database error while updating transfer: " + e.getMessage());
+            return false;
+        }
+    }
+
     private void validateTransferItems(Connection conn, WarehouseTransfer transfer) throws SQLException {
         Map<Integer, Integer> totalQuantityPerProduct = new HashMap<>();
 
@@ -141,6 +196,25 @@ public class WarehouseTransferDAO {
         }
     }
 
+    private void updateTransferHeader(Connection conn, WarehouseTransfer transfer) throws SQLException {
+        String sql = """
+                UPDATE WarehouseTransfer
+                SET transfer_date = ?, from_warehouse_id = ?, to_warehouse_id = ?
+                WHERE transfer_id = ?
+                """;
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setDate(1, Date.valueOf(transfer.getTransferDate()));
+            stmt.setInt(2, transfer.getFromWarehouseId());
+            stmt.setInt(3, transfer.getToWarehouseId());
+            stmt.setInt(4, transfer.getTransferId());
+
+            if (stmt.executeUpdate() == 0) {
+                throw new SQLException("Updating transfer failed.");
+            }
+        }
+    }
+
     private void insertTransferItem(Connection conn, int transferId, WarehouseTransferItem item) throws SQLException {
         String sql = """
                 INSERT INTO WarehouseTransferItem
@@ -153,6 +227,15 @@ public class WarehouseTransferDAO {
             stmt.setInt(2, item.getProductId());
             stmt.setInt(3, item.getQuantity());
 
+            stmt.executeUpdate();
+        }
+    }
+
+    private void deleteTransferItems(Connection conn, int transferId) throws SQLException {
+        String sql = "DELETE FROM WarehouseTransferItem WHERE transfer_id = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, transferId);
             stmt.executeUpdate();
         }
     }
@@ -218,6 +301,70 @@ public class WarehouseTransferDAO {
 
         } catch (SQLException e) {
             System.out.println("Error loading transfer items: " + e.getMessage());
+        }
+
+        return items;
+    }
+
+    public WarehouseTransfer getTransferById(int transferId) {
+        try (Connection conn = DBConnection.getConnection()) {
+            return getTransferById(conn, transferId);
+        } catch (SQLException e) {
+            System.out.println("Error loading transfer: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private WarehouseTransfer getTransferById(Connection conn, int transferId) throws SQLException {
+        String sql = """
+                SELECT transfer_id, transfer_date, from_warehouse_id, to_warehouse_id
+                FROM WarehouseTransfer
+                WHERE transfer_id = ?
+                """;
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, transferId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    WarehouseTransfer transfer = new WarehouseTransfer(
+                            rs.getInt("transfer_id"),
+                            rs.getDate("transfer_date").toLocalDate(),
+                            rs.getInt("from_warehouse_id"),
+                            rs.getInt("to_warehouse_id")
+                    );
+                    transfer.setItems(getTransferItems(conn, transferId));
+                    return transfer;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private List<WarehouseTransferItem> getTransferItems(Connection conn, int transferId) throws SQLException {
+        List<WarehouseTransferItem> items = new ArrayList<>();
+
+        String sql = """
+                SELECT transfer_item_id, transfer_id, product_id, quantity
+                FROM WarehouseTransferItem
+                WHERE transfer_id = ?
+                ORDER BY transfer_item_id
+                """;
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, transferId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    items.add(new WarehouseTransferItem(
+                            rs.getInt("transfer_item_id"),
+                            rs.getInt("transfer_id"),
+                            rs.getInt("product_id"),
+                            rs.getInt("quantity")
+                    ));
+                }
+            }
         }
 
         return items;

@@ -128,6 +128,25 @@ public class PurchaseReportDAO {
         return runQuery(sql);
     }
 
+    public DefaultTableModel getTotalPurchaseAmountPerProduct() {
+        String sql = """
+                SELECT p.product_id AS 'Product ID',
+                       p.product_name AS 'Product',
+                       c.category_name AS 'Category',
+                       b.brand_name AS 'Brand',
+                       SUM(pii.quantity) AS 'Total Quantity Purchased',
+                       ROUND(SUM(pii.quantity * pii.purchase_price), 2) AS 'Total Purchase Amount'
+                FROM PurchaseInvoiceItem pii
+                JOIN Product p ON pii.product_id = p.product_id
+                JOIN Category c ON p.category_id = c.category_id
+                JOIN Brand b ON p.brand_id = b.brand_id
+                GROUP BY p.product_id, p.product_name, c.category_name, b.brand_name
+                ORDER BY SUM(pii.quantity * pii.purchase_price) DESC
+                """;
+
+        return runQuery(sql);
+    }
+
     public DefaultTableModel getCurrentStockByWarehouse() {
         String sql = """
                 SELECT w.warehouse_name AS 'Warehouse',
@@ -187,6 +206,25 @@ public class PurchaseReportDAO {
         return runQuery(sql);
     }
 
+    public DefaultTableModel getTotalPurchaseAmountPerSupplierBetweenDates(LocalDate fromDate, LocalDate toDate) {
+        String sql = """
+                SELECT s.supplier_id AS 'Supplier ID',
+                       s.supplier_name AS 'Supplier',
+                       s.city AS 'City',
+                       COUNT(DISTINCT pi.purchase_invoice_id) AS 'Invoice Count',
+                       SUM(pii.quantity) AS 'Total Quantity',
+                       ROUND(SUM(pii.quantity * pii.purchase_price), 2) AS 'Total Purchase Amount'
+                FROM Supplier s
+                JOIN PurchaseInvoice pi ON s.supplier_id = pi.supplier_id
+                JOIN PurchaseInvoiceItem pii ON pi.purchase_invoice_id = pii.purchase_invoice_id
+                WHERE pi.invoice_date BETWEEN ? AND ?
+                GROUP BY s.supplier_id, s.supplier_name, s.city
+                ORDER BY SUM(pii.quantity * pii.purchase_price) DESC
+                """;
+
+        return runQuery(sql, Date.valueOf(fromDate), Date.valueOf(toDate));
+    }
+
     public DefaultTableModel getPurchaseAmountByMonth() {
         String sql = """
                 SELECT DATE_FORMAT(pi.invoice_date, '%Y-%m') AS 'Month',
@@ -197,6 +235,60 @@ public class PurchaseReportDAO {
                 JOIN PurchaseInvoiceItem pii ON pi.purchase_invoice_id = pii.purchase_invoice_id
                 GROUP BY DATE_FORMAT(pi.invoice_date, '%Y-%m')
                 ORDER BY DATE_FORMAT(pi.invoice_date, '%Y-%m')
+                """;
+
+        return runQuery(sql);
+    }
+
+    public DefaultTableModel getHighestDemandAndSupplyProducts() {
+        String sql = """
+                SELECT p.product_id AS 'Product ID',
+                       p.product_name AS 'Product',
+                       COALESCE(sales.total_sold, 0) AS 'Total Sold',
+                       COALESCE(purchases.total_bought, 0) AS 'Total Bought',
+                       CASE
+                           WHEN COALESCE(purchases.total_bought, 0) > 0
+                           THEN ROUND((COALESCE(sales.total_sold, 0) / COALESCE(purchases.total_bought, 0)) * 100, 2)
+                           ELSE 0
+                       END AS 'Demand / Supply %'
+                FROM Product p
+                LEFT JOIN (
+                    SELECT product_id, SUM(quantity) AS total_sold
+                    FROM SalesInvoiceItem
+                    GROUP BY product_id
+                ) sales ON p.product_id = sales.product_id
+                LEFT JOIN (
+                    SELECT product_id, SUM(quantity) AS total_bought
+                    FROM PurchaseInvoiceItem
+                    GROUP BY product_id
+                ) purchases ON p.product_id = purchases.product_id
+                ORDER BY `Demand / Supply %` DESC,
+                         COALESCE(sales.total_sold, 0) DESC,
+                         p.product_name
+                """;
+
+        return runQuery(sql);
+    }
+
+    public DefaultTableModel getAverageSellingPriceAndProfitPerProduct() {
+        String sql = """
+                SELECT p.product_id AS 'Product ID',
+                       p.product_name AS 'Product',
+                       ROUND(COALESCE(sales.avg_selling_price, 0), 2) AS 'Average Selling Price',
+                       ROUND(COALESCE(purchases.avg_buying_price, 0), 2) AS 'Average Buying Price',
+                       ROUND(COALESCE(sales.avg_selling_price, 0) - COALESCE(purchases.avg_buying_price, 0), 2) AS 'Average Profit'
+                FROM Product p
+                LEFT JOIN (
+                    SELECT product_id, AVG(selling_price) AS avg_selling_price
+                    FROM SalesInvoiceItem
+                    GROUP BY product_id
+                ) sales ON p.product_id = sales.product_id
+                LEFT JOIN (
+                    SELECT product_id, AVG(purchase_price) AS avg_buying_price
+                    FROM PurchaseInvoiceItem
+                    GROUP BY product_id
+                ) purchases ON p.product_id = purchases.product_id
+                ORDER BY `Average Profit` DESC, p.product_name
                 """;
 
         return runQuery(sql);

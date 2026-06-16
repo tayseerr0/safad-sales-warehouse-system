@@ -72,6 +72,15 @@ public class InventoryDAO {
         }
     }
 
+    public int getWarehouseTotalQuantity(int warehouseId) {
+        try (Connection conn = DBConnection.getConnection()) {
+            return getWarehouseTotalQuantity(conn, warehouseId);
+        } catch (SQLException e) {
+            System.out.println("Error getting warehouse total quantity: " + e.getMessage());
+            return 0;
+        }
+    }
+
     // =========================================================
     // Transaction-safe methods
     // These use an existing Connection.
@@ -159,6 +168,22 @@ public class InventoryDAO {
             stmt.setInt(3, warehouseId);
 
             return stmt.executeUpdate() > 0;
+        }
+    }
+
+    public int getWarehouseTotalQuantity(Connection conn, int warehouseId) throws SQLException {
+        String sql = """
+                SELECT COALESCE(SUM(quantity), 0) AS total_quantity
+                FROM Inventory
+                WHERE warehouse_id = ?
+                """;
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, warehouseId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? rs.getInt("total_quantity") : 0;
+            }
         }
     }
 
