@@ -1,5 +1,7 @@
 $ErrorActionPreference = "Stop"
 
+# JavaFX is the default SAFAD UI. This helper compiles all sources and launches it.
+# The legacy Swing UI can still be run from LegacySwingMain if needed.
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $outDir = Join-Path $projectRoot "out\production\javafx-run"
 $mysqlJar = Join-Path $projectRoot "lib\mysql-connector-j-9.7.0.jar"

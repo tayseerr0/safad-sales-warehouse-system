@@ -1,19 +1,25 @@
 # SAFAD JavaFX UI
 
-The JavaFX UI was added side-by-side with the existing Swing UI.
+JavaFX is the default SAFAD desktop UI. The older Swing UI is still kept as a legacy fallback.
 
 ## Main Class
 
-Run this JavaFX entry point:
+Run the project normally with:
+
+```text
+Main
+```
+
+`Main` launches:
 
 ```text
 ui.fx.FxMainApp
 ```
 
-The old Swing entry point remains:
+The old Swing interface remains available through:
 
 ```text
-Main
+LegacySwingMain
 ```
 
 ## Project Type
@@ -34,7 +40,7 @@ Run:
 .\run-javafx.ps1
 ```
 
-The script also supports the local legacy JavaFX 8 runtime jar if it is available on this machine.
+The script compiles all sources and launches `ui.fx.FxMainApp`. It also supports the local legacy JavaFX 8 runtime jar if it is available on this machine.
 
 ## Database
 

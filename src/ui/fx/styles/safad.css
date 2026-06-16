@@ -32,6 +32,13 @@
     -fx-padding: 0 0 4 0;
 }
 
+.nav-section-label {
+    -fx-text-fill: #72819a;
+    -fx-font-size: 10px;
+    -fx-font-weight: 900;
+    -fx-padding: 8 0 2 2;
+}
+
 .nav-button {
     -fx-background-color: #0f1b2e;
     -fx-text-fill: white;
@@ -60,6 +67,10 @@
     -fx-background: #f3f7fc;
     -fx-background-color: #f3f7fc;
     -fx-border-color: transparent;
+}
+
+.page-scroll > .viewport {
+    -fx-background-color: #f3f7fc;
 }
 
 .page {

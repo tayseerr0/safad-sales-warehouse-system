@@ -65,19 +65,12 @@ public class MainLayout {
         Label subtitle = new Label("Sales & Warehouse");
         subtitle.getStyleClass().add("app-subtitle");
 
-        Label navLabel = new Label("Navigation");
-        navLabel.getStyleClass().add("nav-label");
+        sidebar.getChildren().addAll(title, subtitle);
 
-        sidebar.getChildren().addAll(title, subtitle, navLabel);
-
-        for (String pageName : pages.keySet()) {
-            Button button = new Button(pageName);
-            button.getStyleClass().add("nav-button");
-            button.setMaxWidth(Double.MAX_VALUE);
-            button.setOnAction(e -> showPage(pageName));
-            navButtons.put(pageName, button);
-            sidebar.getChildren().add(button);
-        }
+        addSection("Overview", "Dashboard");
+        addSection("Master Data", "Products / Catalog", "Suppliers", "Clients", "Warehouses");
+        addSection("Operations", "Purchases", "Sales", "Inventory", "Transfers");
+        addSection("Analysis", "Reports");
 
         Label tableModeLabel = new Label("Table Columns");
         tableModeLabel.getStyleClass().add("nav-label");
@@ -98,6 +91,21 @@ public class MainLayout {
         return sidebar;
     }
 
+    private void addSection(String title, String... pageNames) {
+        Label label = new Label(title);
+        label.getStyleClass().add("nav-section-label");
+        sidebar.getChildren().add(label);
+
+        for (String pageName : pageNames) {
+            Button button = new Button(pageName);
+            button.getStyleClass().add("nav-button");
+            button.setMaxWidth(Double.MAX_VALUE);
+            button.setOnAction(e -> showPage(pageName));
+            navButtons.put(pageName, button);
+            sidebar.getChildren().add(button);
+        }
+    }
+
     private void showPage(String pageName) {
         Supplier<Node> pageSupplier = pages.get(pageName);
         if (pageSupplier == null) {
@@ -107,6 +115,7 @@ public class MainLayout {
         ScrollPane scrollPane = new ScrollPane(pageSupplier.get());
         scrollPane.getStyleClass().add("page-scroll");
         scrollPane.setFitToWidth(true);
+        scrollPane.setFitToHeight(true);
 
         root.setCenter(scrollPane);
 
