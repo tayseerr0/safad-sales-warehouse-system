@@ -36,10 +36,13 @@ public class ReportsFxPage extends VBox {
 
     private final TableView<Map<String, Object>> salesTable = new TableView<>();
     private final TableView<Map<String, Object>> purchaseTable = new TableView<>();
+    private final TableView<Map<String, Object>> analysisTable = new TableView<>();
     private final TextField salesSearchField = FxTheme.textField("Search sales report");
     private final TextField purchaseSearchField = FxTheme.textField("Search purchase report");
+    private final TextField analysisSearchField = FxTheme.textField("Search analysis report");
     private final Label salesSummaryLabel = new Label("Select a report and run it.");
     private final Label purchaseSummaryLabel = new Label("Select a report and run it.");
+    private final Label analysisSummaryLabel = new Label("Select a report and run it.");
 
     private ComboBox<String> salesReportComboBox;
     private DatePicker salesStartDatePicker;
@@ -60,6 +63,12 @@ public class ReportsFxPage extends VBox {
     private SplitPane purchaseSplit;
     private DefaultTableModel currentPurchaseModel;
 
+    private ComboBox<String> analysisReportComboBox;
+    private BorderPane analysisChartPane;
+    private Node analysisChartCard;
+    private SplitPane analysisSplit;
+    private DefaultTableModel currentAnalysisModel;
+
     public ReportsFxPage() {
         getChildren().add(FxTheme.page("Reports", "Analytical sales, purchase, and mixed business reports.", createContent()));
     }
@@ -67,8 +76,9 @@ public class ReportsFxPage extends VBox {
     private TabPane createContent() {
         TabPane tabs = new TabPane();
         tabs.getStyleClass().add("clean-tabs");
-        tabs.getTabs().add(new Tab("Sales Reports", createSalesTab()));
-        tabs.getTabs().add(new Tab("Purchase / Mixed Reports", createPurchaseTab()));
+        tabs.getTabs().add(new Tab("Sales", createSalesTab()));
+        tabs.getTabs().add(new Tab("Purchases", createPurchaseTab()));
+        tabs.getTabs().add(new Tab("Analysis", createAnalysisTab()));
         tabs.getTabs().forEach(tab -> tab.setClosable(false));
         return tabs;
     }
@@ -139,9 +149,7 @@ public class ReportsFxPage extends VBox {
                 "Total Purchase Amount per Product",
                 "Total Purchase Amount per Supplier",
                 "Purchase Amount per Supplier Between Dates",
-                "Purchase Amount by Month",
-                "Highest Demand and Supply Products",
-                "Average Selling Price and Profit"
+                "Purchase Amount by Month"
         );
         purchaseReportComboBox.getStyleClass().add("report-selector");
         purchaseReportComboBox.getSelectionModel().selectFirst();
@@ -176,7 +184,7 @@ public class ReportsFxPage extends VBox {
 
         purchaseChartCard = FxTheme.card("Report Chart", purchaseChartPane);
         purchaseSplit = new SplitPane(
-                FxTheme.card("Purchase / Mixed Results", new VBox(10,
+                FxTheme.card("Purchase Results", new VBox(10,
                         FxTheme.toolbar(purchaseSearchField),
                         purchaseSummaryLabel,
                         purchaseTable
@@ -190,6 +198,51 @@ public class ReportsFxPage extends VBox {
         BorderPane pane = new BorderPane();
         pane.setTop(filters);
         pane.setCenter(purchaseSplit);
+        BorderPane.setMargin(filters, new javafx.geometry.Insets(0, 0, 16, 0));
+        return pane;
+    }
+
+    private BorderPane createAnalysisTab() {
+        analysisReportComboBox = new ComboBox<>();
+        analysisReportComboBox.getItems().addAll(
+                "Highest Demand and Supply Products",
+                "Average Selling Price and Profit"
+        );
+        analysisReportComboBox.getStyleClass().add("report-selector");
+        analysisReportComboBox.getSelectionModel().selectFirst();
+        analysisSummaryLabel.getStyleClass().add("muted-label");
+
+        Button run = FxTheme.primaryButton("Run Report");
+        Button clear = FxTheme.secondaryButton("Clear");
+        run.setOnAction(e -> runAnalysisReport());
+        clear.setOnAction(e -> clearAnalysisReport());
+
+        HBox filters = FxTheme.toolbar(analysisReportComboBox, run, clear);
+        filters.getStyleClass().add("report-filter-bar");
+        analysisReportComboBox.setOnAction(e -> updateAnalysisChartVisibility());
+
+        FxTheme.styleTable(analysisTable);
+        analysisSearchField.textProperty().addListener((obs, oldText, newText) -> applyAnalysisSearch());
+
+        analysisChartPane = new BorderPane();
+        analysisChartPane.setCenter(FxChartUtil.barChart("Analysis Chart", Map.of("No data", 0)));
+
+        analysisChartCard = FxTheme.card("Analysis Chart", analysisChartPane);
+        analysisSplit = new SplitPane(
+                FxTheme.card("Analysis Results", new VBox(10,
+                        FxTheme.toolbar(analysisSearchField),
+                        analysisSummaryLabel,
+                        analysisTable
+                )),
+                analysisChartCard
+        );
+        analysisSplit.setOrientation(javafx.geometry.Orientation.HORIZONTAL);
+        analysisSplit.setDividerPositions(0.62);
+        updateAnalysisChartVisibility();
+
+        BorderPane pane = new BorderPane();
+        pane.setTop(filters);
+        pane.setCenter(analysisSplit);
         BorderPane.setMargin(filters, new javafx.geometry.Insets(0, 0, 16, 0));
         return pane;
     }
@@ -232,6 +285,10 @@ public class ReportsFxPage extends VBox {
         setChartVisible(purchaseSplit, purchaseChartCard, purchaseReportUsesChart(purchaseReportComboBox.getValue()));
     }
 
+    private void updateAnalysisChartVisibility() {
+        setChartVisible(analysisSplit, analysisChartCard, analysisReportUsesChart(analysisReportComboBox.getValue()));
+    }
+
     private void setChartVisible(SplitPane split, Node chartCard, boolean visible) {
         if (split == null || chartCard == null) return;
         boolean currentlyShown = split.getItems().contains(chartCard);
@@ -258,8 +315,11 @@ public class ReportsFxPage extends VBox {
                 || "Total Purchase Amount per Product".equals(report)
                 || "Total Purchase Amount per Supplier".equals(report)
                 || "Purchase Amount per Supplier Between Dates".equals(report)
-                || "Purchase Amount by Month".equals(report)
-                || "Highest Demand and Supply Products".equals(report)
+                || "Purchase Amount by Month".equals(report);
+    }
+
+    private boolean analysisReportUsesChart(String report) {
+        return "Highest Demand and Supply Products".equals(report)
                 || "Average Selling Price and Profit".equals(report);
     }
 
@@ -348,8 +408,6 @@ public class ReportsFxPage extends VBox {
                 case "Total Purchase Amount per Supplier" -> model = purchaseReportDAO.getTotalPurchaseAmountPerSupplier();
                 case "Purchase Amount per Supplier Between Dates" -> model = purchaseReportDAO.getTotalPurchaseAmountPerSupplierBetweenDates(purchaseStartDatePicker.getValue(), purchaseEndDatePicker.getValue());
                 case "Purchase Amount by Month" -> model = purchaseReportDAO.getPurchaseAmountByMonth();
-                case "Highest Demand and Supply Products" -> model = purchaseReportDAO.getHighestDemandAndSupplyProducts();
-                case "Average Selling Price and Profit" -> model = purchaseReportDAO.getAverageSellingPriceAndProfitPerProduct();
                 default -> model = purchaseReportDAO.getTotalPurchaseAmountPerProduct();
             }
 
@@ -359,6 +417,26 @@ public class ReportsFxPage extends VBox {
             applyPurchaseSearch();
         } catch (Exception e) {
             FxTheme.showError("Could not run purchase report: " + e.getMessage());
+        }
+    }
+
+    private void runAnalysisReport() {
+        try {
+            String report = analysisReportComboBox.getValue();
+            DefaultTableModel model;
+
+            switch (report) {
+                case "Highest Demand and Supply Products" -> model = purchaseReportDAO.getHighestDemandAndSupplyProducts();
+                case "Average Selling Price and Profit" -> model = purchaseReportDAO.getAverageSellingPriceAndProfitPerProduct();
+                default -> model = purchaseReportDAO.getHighestDemandAndSupplyProducts();
+            }
+
+            currentAnalysisModel = model;
+            analysisSummaryLabel.setText(report + " | Rows: " + model.getRowCount());
+            setAnalysisChart(report, purchaseChartData(report, model));
+            applyAnalysisSearch();
+        } catch (Exception e) {
+            FxTheme.showError("Could not run analysis report: " + e.getMessage());
         }
     }
 
@@ -382,6 +460,10 @@ public class ReportsFxPage extends VBox {
 
     private void applyPurchaseSearch() {
         filterModel(currentPurchaseModel, purchaseTable, purchaseSearchField.getText());
+    }
+
+    private void applyAnalysisSearch() {
+        filterModel(currentAnalysisModel, analysisTable, analysisSearchField.getText());
     }
 
     private void filterModel(DefaultTableModel source, TableView<Map<String, Object>> table, String keyword) {
@@ -500,6 +582,10 @@ public class ReportsFxPage extends VBox {
         purchaseChartPane.setCenter(connectedPlot ? FxChartUtil.connectedPlot(title, data) : FxChartUtil.barChart(title, data));
     }
 
+    private void setAnalysisChart(String title, Map<String, Number> data) {
+        analysisChartPane.setCenter(FxChartUtil.barChart(title, data));
+    }
+
     private void clearSalesReport() {
         currentSalesModel = null;
         salesTable.getItems().clear();
@@ -514,5 +600,13 @@ public class ReportsFxPage extends VBox {
         purchaseTable.getColumns().clear();
         purchaseSummaryLabel.setText("Select a report and run it.");
         setPurchaseChart("Purchase Chart", Map.of("No data", 0));
+    }
+
+    private void clearAnalysisReport() {
+        currentAnalysisModel = null;
+        analysisTable.getItems().clear();
+        analysisTable.getColumns().clear();
+        analysisSummaryLabel.setText("Select a report and run it.");
+        setAnalysisChart("Analysis Chart", Map.of("No data", 0));
     }
 }

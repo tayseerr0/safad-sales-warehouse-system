@@ -63,7 +63,11 @@ public class SuppliersFxPage extends VBox {
         BorderPane content = new BorderPane();
         content.setTop(createToolbar());
 
-        HBox body = new HBox(16, FxTheme.card("Supplier Form", createSupplierForm()), FxTheme.card("Suppliers", supplierTable));
+        VBox supplierFormCard = FxTheme.card("Supplier Form", createSupplierForm());
+        supplierFormCard.setMinWidth(390);
+        supplierFormCard.setPrefWidth(390);
+
+        HBox body = new HBox(16, supplierFormCard, FxTheme.card("Suppliers", supplierTable));
         HBox.setHgrow(body.getChildren().get(1), Priority.ALWAYS);
 
         content.setCenter(body);
@@ -99,6 +103,10 @@ public class SuppliersFxPage extends VBox {
         Button update = FxTheme.primaryButton("Update");
         Button delete = FxTheme.dangerButton("Delete");
         Button clear = FxTheme.secondaryButton("Clear");
+        add.setMinWidth(78);
+        update.setMinWidth(78);
+        delete.setMinWidth(78);
+        clear.setMinWidth(78);
         add.setOnAction(e -> addSupplier());
         update.setOnAction(e -> updateSupplier());
         delete.setOnAction(e -> deleteSupplier());
