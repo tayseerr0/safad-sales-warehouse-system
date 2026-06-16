@@ -284,7 +284,7 @@ public class ReportsFxPage extends VBox {
                 case "Monthly Sales" -> {
                     model = modelFromRows(new String[]{"Year", "Month", "Total Sales"}, salesReportDAO.getMonthlySales(Integer.parseInt(salesYearField.getText())));
                     salesSummaryLabel.setText("Monthly sales rows: " + model.getRowCount());
-                    setSalesChart("Monthly Sales", chartFromModel(model, "Month", "Total Sales", 12));
+                    setSalesChart("Monthly Sales", chartFromModel(model, "Month", "Total Sales", 12), true);
                 }
                 case "Top Customers" -> {
                     model = modelFromRows(new String[]{"Client ID", "Client Name", "Client Type", "Total Spent"}, salesReportDAO.getTopCustomers(startDate(), endDate()));
@@ -355,7 +355,7 @@ public class ReportsFxPage extends VBox {
 
             currentPurchaseModel = model;
             purchaseSummaryLabel.setText(report + " | Rows: " + model.getRowCount());
-            setPurchaseChart(report, purchaseChartData(report, model));
+            setPurchaseChart(report, purchaseChartData(report, model), "Purchase Amount by Month".equals(report));
             applyPurchaseSearch();
         } catch (Exception e) {
             FxTheme.showError("Could not run purchase report: " + e.getMessage());
@@ -488,8 +488,16 @@ public class ReportsFxPage extends VBox {
         salesChartPane.setCenter(FxChartUtil.barChart(title, data));
     }
 
+    private void setSalesChart(String title, Map<String, Number> data, boolean connectedPlot) {
+        salesChartPane.setCenter(connectedPlot ? FxChartUtil.connectedPlot(title, data) : FxChartUtil.barChart(title, data));
+    }
+
     private void setPurchaseChart(String title, Map<String, Number> data) {
         purchaseChartPane.setCenter(FxChartUtil.barChart(title, data));
+    }
+
+    private void setPurchaseChart(String title, Map<String, Number> data, boolean connectedPlot) {
+        purchaseChartPane.setCenter(connectedPlot ? FxChartUtil.connectedPlot(title, data) : FxChartUtil.barChart(title, data));
     }
 
     private void clearSalesReport() {

@@ -83,7 +83,7 @@ public class DashboardFxPage extends VBox {
     }
 
     private HBox createAnalyticsPane() {
-        Node monthly = FxTheme.card("Monthly Sales", FxChartUtil.barChart(
+        Node monthly = FxTheme.card("Monthly Sales", FxChartUtil.connectedPlot(
                 "Sales by Month - " + LocalDate.now().getYear(),
                 monthlySales()
         ));
