@@ -42,6 +42,7 @@ public class PurchaseReportsPanel extends JPanel {
     private static final String PRODUCTS_CATEGORY_BRAND = "Products with Category and Brand";
     private static final String PRODUCTS_IN_WAREHOUSE = "Products in Warehouse";
     private static final String SUPPLIERS_FOR_PRODUCT = "Suppliers for Product";
+    private static final String CHEAPEST_SUPPLIER_PRODUCT = "Cheapest Supplier for Each Product";
     private static final String PURCHASES_BY_SUPPLIER_DATE = "Purchase Invoices by Supplier and Date";
     private static final String PURCHASE_INVOICE_DETAILS = "Purchase Invoice Details";
     private static final String TOTAL_QTY_PRODUCT = "Total Quantity Purchased per Product";
@@ -49,6 +50,8 @@ public class PurchaseReportsPanel extends JPanel {
     private static final String LOW_STOCK = "Low Stock Products";
     private static final String TOTAL_AMOUNT_SUPPLIER = "Total Purchase Amount per Supplier";
     private static final String PURCHASE_AMOUNT_MONTH = "Purchase Amount by Month";
+    private static final String SLOW_MOVING_INVENTORY = "Slow Moving Inventory";
+    private static final String PROFIT_PER_PRODUCT = "Profit per Product";
 
     public PurchaseReportsPanel() {
         setLayout(new BorderLayout(15, 15));
@@ -89,13 +92,16 @@ public class PurchaseReportsPanel extends JPanel {
                 PRODUCTS_CATEGORY_BRAND,
                 PRODUCTS_IN_WAREHOUSE,
                 SUPPLIERS_FOR_PRODUCT,
+                CHEAPEST_SUPPLIER_PRODUCT,
                 PURCHASES_BY_SUPPLIER_DATE,
                 PURCHASE_INVOICE_DETAILS,
                 TOTAL_QTY_PRODUCT,
                 CURRENT_STOCK,
                 LOW_STOCK,
                 TOTAL_AMOUNT_SUPPLIER,
-                PURCHASE_AMOUNT_MONTH
+                PURCHASE_AMOUNT_MONTH,
+                SLOW_MOVING_INVENTORY,
+                PROFIT_PER_PRODUCT
         });
 
         supplierComboBox = new JComboBox<>();
@@ -274,6 +280,10 @@ public class PurchaseReportsPanel extends JPanel {
                 model = reportDAO.getSuppliersForProduct(selectedProduct.getId());
                 break;
 
+            case CHEAPEST_SUPPLIER_PRODUCT:
+                model = reportDAO.getCheapestSupplierForEachProduct();
+                break;
+
             case PURCHASES_BY_SUPPLIER_DATE:
                 ComboOption selectedSupplier = getSelectedOption(supplierComboBox, "Select a supplier.");
                 if (selectedSupplier == null) return;
@@ -316,6 +326,14 @@ public class PurchaseReportsPanel extends JPanel {
 
             case PURCHASE_AMOUNT_MONTH:
                 model = reportDAO.getPurchaseAmountByMonth();
+                break;
+
+            case SLOW_MOVING_INVENTORY:
+                model = reportDAO.getSlowMovingInventory();
+                break;
+
+            case PROFIT_PER_PRODUCT:
+                model = reportDAO.getProfitPerProduct();
                 break;
 
             default:
@@ -385,7 +403,31 @@ public class PurchaseReportsPanel extends JPanel {
             return;
         }
 
-        chartPanel.setMessage("Chart available for total quantity, total supplier amount, and monthly purchase amount reports.");
+        if (reportName.equals(CHEAPEST_SUPPLIER_PRODUCT)) {
+            chartPanel.setChartData(
+                    "Cheapest Supplier Price by Product",
+                    buildChartItems("Product", "Cheapest Supply Price", 8)
+            );
+            return;
+        }
+
+        if (reportName.equals(SLOW_MOVING_INVENTORY)) {
+            chartPanel.setChartData(
+                    "Slow Moving Inventory",
+                    buildChartItems("Product", "Current Stock", 8)
+            );
+            return;
+        }
+
+        if (reportName.equals(PROFIT_PER_PRODUCT)) {
+            chartPanel.setChartData(
+                    "Profit per Product",
+                    buildChartItems("Product", "Profit", 8)
+            );
+            return;
+        }
+
+        chartPanel.setMessage("Chart available for aggregation and smart product reports.");
     }
 
     private List<SimpleBarChartPanel.ChartItem> buildChartItems(String labelColumn,

@@ -134,6 +134,7 @@ public class ReportsFxPage extends VBox {
         purchaseReportComboBox = new ComboBox<>();
         purchaseReportComboBox.getItems().addAll(
                 "Suppliers for Product",
+                "Cheapest Supplier for Each Product",
                 "Purchase Invoices by Supplier and Date",
                 "Total Quantity Purchased per Product",
                 "Total Purchase Amount per Product",
@@ -141,7 +142,9 @@ public class ReportsFxPage extends VBox {
                 "Purchase Amount per Supplier Between Dates",
                 "Purchase Amount by Month",
                 "Highest Demand and Supply Products",
-                "Average Selling Price and Profit"
+                "Average Selling Price and Profit",
+                "Slow Moving Inventory",
+                "Profit per Product"
         );
         purchaseReportComboBox.getStyleClass().add("report-selector");
         purchaseReportComboBox.getSelectionModel().selectFirst();
@@ -260,7 +263,10 @@ public class ReportsFxPage extends VBox {
                 || "Purchase Amount per Supplier Between Dates".equals(report)
                 || "Purchase Amount by Month".equals(report)
                 || "Highest Demand and Supply Products".equals(report)
-                || "Average Selling Price and Profit".equals(report);
+                || "Average Selling Price and Profit".equals(report)
+                || "Cheapest Supplier for Each Product".equals(report)
+                || "Slow Moving Inventory".equals(report)
+                || "Profit per Product".equals(report);
     }
 
     private void setVisible(Node node, boolean visible) {
@@ -287,7 +293,7 @@ public class ReportsFxPage extends VBox {
                     setSalesChart("Monthly Sales", chartFromModel(model, "Month", "Total Sales", 12), true);
                 }
                 case "Top Customers" -> {
-                    model = modelFromRows(new String[]{"Client ID", "Client Name", "Client Type", "Total Spent"}, salesReportDAO.getTopCustomers(startDate(), endDate()));
+                    model = modelFromRows(new String[]{"Client ID", "Client Name", "Client Type", "Invoice Count", "Total Spent", "Average Invoice", "Last Purchase Date"}, salesReportDAO.getTopCustomers(startDate(), endDate()));
                     salesSummaryLabel.setText(model.getRowCount() == 0 ? "No customers found." : "Top customer: " + model.getValueAt(0, 1));
                     setSalesChart("Top Customers", chartFromModel(model, "Client Name", "Total Spent", 8));
                 }
@@ -342,6 +348,7 @@ public class ReportsFxPage extends VBox {
 
             switch (report) {
                 case "Suppliers for Product" -> model = purchaseReportDAO.getSuppliersForProduct(productComboBox.getValue().getId());
+                case "Cheapest Supplier for Each Product" -> model = purchaseReportDAO.getCheapestSupplierForEachProduct();
                 case "Purchase Invoices by Supplier and Date" -> model = purchaseReportDAO.getPurchaseInvoicesBySupplierAndDate(supplierComboBox.getValue().getId(), purchaseStartDatePicker.getValue(), purchaseEndDatePicker.getValue());
                 case "Total Quantity Purchased per Product" -> model = purchaseReportDAO.getTotalQuantityPurchasedPerProduct();
                 case "Total Purchase Amount per Product" -> model = purchaseReportDAO.getTotalPurchaseAmountPerProduct();
@@ -350,6 +357,8 @@ public class ReportsFxPage extends VBox {
                 case "Purchase Amount by Month" -> model = purchaseReportDAO.getPurchaseAmountByMonth();
                 case "Highest Demand and Supply Products" -> model = purchaseReportDAO.getHighestDemandAndSupplyProducts();
                 case "Average Selling Price and Profit" -> model = purchaseReportDAO.getAverageSellingPriceAndProfitPerProduct();
+                case "Slow Moving Inventory" -> model = purchaseReportDAO.getSlowMovingInventory();
+                case "Profit per Product" -> model = purchaseReportDAO.getProfitPerProduct();
                 default -> model = purchaseReportDAO.getTotalPurchaseAmountPerProduct();
             }
 
@@ -418,6 +427,9 @@ public class ReportsFxPage extends VBox {
         if ("Purchase Amount by Month".equals(report)) return chartFromModel(model, "Month", "Total Purchase Amount", 12);
         if ("Highest Demand and Supply Products".equals(report)) return chartFromModel(model, "Product", "Demand / Supply %", 8);
         if ("Average Selling Price and Profit".equals(report)) return chartFromModel(model, "Product", "Average Profit", 8);
+        if ("Cheapest Supplier for Each Product".equals(report)) return chartFromModel(model, "Product", "Cheapest Supply Price", 8);
+        if ("Slow Moving Inventory".equals(report)) return chartFromModel(model, "Product", "Current Stock", 8);
+        if ("Profit per Product".equals(report)) return chartFromModel(model, "Product", "Profit", 8);
         return Map.of("Rows", model.getRowCount());
     }
 

@@ -65,6 +65,32 @@ public class PurchaseReportDAO {
         return runQuery(sql, productId);
     }
 
+    public DefaultTableModel getCheapestSupplierForEachProduct() {
+        String sql = """
+                SELECT p.product_id AS 'Product ID',
+                       p.product_name AS 'Product',
+                       s.supplier_id AS 'Supplier ID',
+                       s.supplier_name AS 'Cheapest Supplier',
+                       sp.supply_price AS 'Cheapest Supply Price',
+                       ROUND(avg_prices.average_supply_price, 2) AS 'Average Supplier Price',
+                       ROUND(avg_prices.average_supply_price - sp.supply_price, 2) AS 'Savings vs Average'
+                FROM SupplierProduct sp
+                JOIN Product p ON sp.product_id = p.product_id
+                JOIN Supplier s ON sp.supplier_id = s.supplier_id
+                JOIN (
+                    SELECT product_id,
+                           MIN(supply_price) AS cheapest_supply_price,
+                           AVG(supply_price) AS average_supply_price
+                    FROM SupplierProduct
+                    GROUP BY product_id
+                ) avg_prices ON sp.product_id = avg_prices.product_id
+                             AND sp.supply_price = avg_prices.cheapest_supply_price
+                ORDER BY p.product_name, s.supplier_name
+                """;
+
+        return runQuery(sql);
+    }
+
     public DefaultTableModel getPurchaseInvoicesBySupplierAndDate(int supplierId,
                                                                   LocalDate fromDate,
                                                                   LocalDate toDate) {
@@ -289,6 +315,85 @@ public class PurchaseReportDAO {
                     GROUP BY product_id
                 ) purchases ON p.product_id = purchases.product_id
                 ORDER BY `Average Profit` DESC, p.product_name
+                """;
+
+        return runQuery(sql);
+    }
+
+    public DefaultTableModel getSlowMovingInventory() {
+        String sql = """
+                SELECT p.product_id AS 'Product ID',
+                       p.product_name AS 'Product',
+                       c.category_name AS 'Category',
+                       b.brand_name AS 'Brand',
+                       COALESCE(stock.current_stock, 0) AS 'Current Stock',
+                       COALESCE(sales.quantity_sold, 0) AS 'Quantity Sold',
+                       CASE
+                           WHEN COALESCE(stock.current_stock, 0) >= 20
+                                AND COALESCE(sales.quantity_sold, 0) <= 5
+                           THEN 'Slow Moving'
+                           WHEN COALESCE(stock.current_stock, 0) >= 10
+                                AND COALESCE(sales.quantity_sold, 0) = 0
+                           THEN 'Not Selling'
+                           ELSE 'Watch'
+                       END AS 'Status'
+                FROM Product p
+                JOIN Category c ON p.category_id = c.category_id
+                JOIN Brand b ON p.brand_id = b.brand_id
+                LEFT JOIN (
+                    SELECT product_id, SUM(quantity) AS current_stock
+                    FROM Inventory
+                    GROUP BY product_id
+                ) stock ON p.product_id = stock.product_id
+                LEFT JOIN (
+                    SELECT sii.product_id, SUM(sii.quantity) AS quantity_sold
+                    FROM SalesInvoiceItem sii
+                    JOIN SalesInvoice si ON sii.sales_invoice_id = si.sales_invoice_id
+                    WHERE si.invoice_date >= DATE_SUB(CURRENT_DATE, INTERVAL 90 DAY)
+                    GROUP BY sii.product_id
+                ) sales ON p.product_id = sales.product_id
+                WHERE COALESCE(stock.current_stock, 0) > 0
+                  AND COALESCE(sales.quantity_sold, 0) <= 5
+                ORDER BY COALESCE(stock.current_stock, 0) DESC,
+                         COALESCE(sales.quantity_sold, 0),
+                         p.product_name
+                """;
+
+        return runQuery(sql);
+    }
+
+    public DefaultTableModel getProfitPerProduct() {
+        String sql = """
+                SELECT p.product_id AS 'Product ID',
+                       p.product_name AS 'Product',
+                       COALESCE(sales.quantity_sold, 0) AS 'Quantity Sold',
+                       ROUND(COALESCE(sales.revenue, 0), 2) AS 'Revenue',
+                       ROUND(COALESCE(sales.quantity_sold, 0) * COALESCE(costs.average_purchase_price, 0), 2) AS 'Estimated Cost',
+                       ROUND(COALESCE(sales.revenue, 0)
+                             - (COALESCE(sales.quantity_sold, 0) * COALESCE(costs.average_purchase_price, 0)), 2) AS 'Profit',
+                       CASE
+                           WHEN COALESCE(sales.revenue, 0) > 0
+                           THEN ROUND(((COALESCE(sales.revenue, 0)
+                                  - (COALESCE(sales.quantity_sold, 0) * COALESCE(costs.average_purchase_price, 0)))
+                                  / COALESCE(sales.revenue, 0)) * 100, 2)
+                           ELSE 0
+                       END AS 'Profit Margin %'
+                FROM Product p
+                LEFT JOIN (
+                    SELECT product_id,
+                           SUM(quantity) AS quantity_sold,
+                           SUM(quantity * selling_price) AS revenue
+                    FROM SalesInvoiceItem
+                    GROUP BY product_id
+                ) sales ON p.product_id = sales.product_id
+                LEFT JOIN (
+                    SELECT product_id,
+                           AVG(purchase_price) AS average_purchase_price
+                    FROM PurchaseInvoiceItem
+                    GROUP BY product_id
+                ) costs ON p.product_id = costs.product_id
+                WHERE COALESCE(sales.quantity_sold, 0) > 0
+                ORDER BY `Profit` DESC, p.product_name
                 """;
 
         return runQuery(sql);

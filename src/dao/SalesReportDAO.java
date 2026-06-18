@@ -141,7 +141,10 @@ public class SalesReportDAO {
                     c.client_id,
                     c.client_name,
                     c.client_type,
-                    COALESCE(SUM(sii.quantity * sii.selling_price), 0) AS total_spent
+                    COUNT(DISTINCT si.sales_invoice_id) AS invoice_count,
+                    COALESCE(SUM(sii.quantity * sii.selling_price), 0) AS total_spent,
+                    ROUND(COALESCE(SUM(sii.quantity * sii.selling_price), 0) / COUNT(DISTINCT si.sales_invoice_id), 2) AS average_invoice,
+                    MAX(si.invoice_date) AS last_purchase_date
                 FROM Client c
                 JOIN SalesInvoice si ON c.client_id = si.client_id
                 JOIN SalesInvoiceItem sii ON si.sales_invoice_id = sii.sales_invoice_id
@@ -162,7 +165,10 @@ public class SalesReportDAO {
                             rs.getInt("client_id"),
                             rs.getString("client_name"),
                             rs.getString("client_type"),
-                            rs.getBigDecimal("total_spent")
+                            rs.getInt("invoice_count"),
+                            rs.getBigDecimal("total_spent"),
+                            rs.getBigDecimal("average_invoice"),
+                            rs.getDate("last_purchase_date")
                     });
                 }
             }

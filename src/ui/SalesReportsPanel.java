@@ -247,7 +247,7 @@ public class SalesReportsPanel extends JPanel {
     private void runTopCustomers() {
         List<Object[]> rows = salesReportDAO.getTopCustomers(getStartDate(), getEndDate());
 
-        setColumns("Client ID", "Client Name", "Client Type", "Total Spent");
+        setColumns("Client ID", "Client Name", "Client Type", "Invoice Count", "Total Spent", "Average Invoice", "Last Purchase Date");
         fillTable(rows);
 
         summaryLabel.setText(rows.isEmpty() ? "No results." : "Top customer: " + rows.get(0)[1]);
