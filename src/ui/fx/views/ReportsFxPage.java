@@ -76,6 +76,7 @@ public class ReportsFxPage extends VBox {
     private TabPane createContent() {
         TabPane tabs = new TabPane();
         tabs.getStyleClass().add("clean-tabs");
+        tabs.getStyleClass().add("report-tabs");
         tabs.getTabs().add(new Tab("Sales", createSalesTab()));
         tabs.getTabs().add(new Tab("Purchases", createPurchaseTab()));
         tabs.getTabs().add(new Tab("Analysis", createAnalysisTab()));
@@ -111,6 +112,7 @@ public class ReportsFxPage extends VBox {
 
         HBox filters = FxTheme.toolbar(salesReportComboBox, salesStartDatePicker, salesEndDatePicker, salesYearField, run, clear);
         filters.getStyleClass().add("report-filter-bar");
+        filters.getStyleClass().add("report-ledger-filters");
         salesReportComboBox.setOnAction(e -> updateSalesFilters());
         updateSalesFilters();
 
@@ -121,19 +123,24 @@ public class ReportsFxPage extends VBox {
         salesChartPane.setCenter(FxChartUtil.barChart("Sales Chart", Map.of("No data", 0)));
 
         salesChartCard = FxTheme.card("Sales Chart", salesChartPane);
+        salesChartCard.getStyleClass().add("report-chart-card");
+        VBox salesResultsCard = FxTheme.card("Sales Results", new VBox(10,
+                FxTheme.toolbar(salesSearchField),
+                salesSummaryLabel,
+                salesTable
+        ));
+        salesResultsCard.getStyleClass().add("report-result-card");
         salesSplit = new SplitPane(
-                FxTheme.card("Sales Results", new VBox(10,
-                        FxTheme.toolbar(salesSearchField),
-                        salesSummaryLabel,
-                        salesTable
-                )),
+                salesResultsCard,
                 salesChartCard
         );
+        salesSplit.getStyleClass().add("report-split");
         salesSplit.setOrientation(javafx.geometry.Orientation.HORIZONTAL);
         salesSplit.setDividerPositions(0.62);
         updateSalesChartVisibility();
 
         BorderPane pane = new BorderPane();
+        pane.getStyleClass().add("report-workbench");
         pane.setTop(filters);
         pane.setCenter(salesSplit);
         BorderPane.setMargin(filters, new javafx.geometry.Insets(0, 0, 16, 0));
@@ -173,6 +180,7 @@ public class ReportsFxPage extends VBox {
         HBox filters = FxTheme.toolbar(purchaseReportComboBox, supplierComboBox, productComboBox,
                 purchaseStartDatePicker, purchaseEndDatePicker, refresh, run, clear);
         filters.getStyleClass().add("report-filter-bar");
+        filters.getStyleClass().add("report-ledger-filters");
         purchaseReportComboBox.setOnAction(e -> updatePurchaseFilters());
         updatePurchaseFilters();
 
@@ -183,19 +191,24 @@ public class ReportsFxPage extends VBox {
         purchaseChartPane.setCenter(FxChartUtil.barChart("Purchase Chart", Map.of("No data", 0)));
 
         purchaseChartCard = FxTheme.card("Report Chart", purchaseChartPane);
+        purchaseChartCard.getStyleClass().add("report-chart-card");
+        VBox purchaseResultsCard = FxTheme.card("Purchase Results", new VBox(10,
+                FxTheme.toolbar(purchaseSearchField),
+                purchaseSummaryLabel,
+                purchaseTable
+        ));
+        purchaseResultsCard.getStyleClass().add("report-result-card");
         purchaseSplit = new SplitPane(
-                FxTheme.card("Purchase Results", new VBox(10,
-                        FxTheme.toolbar(purchaseSearchField),
-                        purchaseSummaryLabel,
-                        purchaseTable
-                )),
+                purchaseResultsCard,
                 purchaseChartCard
         );
+        purchaseSplit.getStyleClass().add("report-split");
         purchaseSplit.setOrientation(javafx.geometry.Orientation.HORIZONTAL);
         purchaseSplit.setDividerPositions(0.62);
         updatePurchaseChartVisibility();
 
         BorderPane pane = new BorderPane();
+        pane.getStyleClass().add("report-workbench");
         pane.setTop(filters);
         pane.setCenter(purchaseSplit);
         BorderPane.setMargin(filters, new javafx.geometry.Insets(0, 0, 16, 0));
@@ -219,6 +232,7 @@ public class ReportsFxPage extends VBox {
 
         HBox filters = FxTheme.toolbar(analysisReportComboBox, run, clear);
         filters.getStyleClass().add("report-filter-bar");
+        filters.getStyleClass().add("report-ledger-filters");
         analysisReportComboBox.setOnAction(e -> updateAnalysisChartVisibility());
 
         FxTheme.styleTable(analysisTable);
@@ -228,19 +242,24 @@ public class ReportsFxPage extends VBox {
         analysisChartPane.setCenter(FxChartUtil.barChart("Analysis Chart", Map.of("No data", 0)));
 
         analysisChartCard = FxTheme.card("Analysis Chart", analysisChartPane);
+        analysisChartCard.getStyleClass().add("report-chart-card");
+        VBox analysisResultsCard = FxTheme.card("Analysis Results", new VBox(10,
+                FxTheme.toolbar(analysisSearchField),
+                analysisSummaryLabel,
+                analysisTable
+        ));
+        analysisResultsCard.getStyleClass().add("report-result-card");
         analysisSplit = new SplitPane(
-                FxTheme.card("Analysis Results", new VBox(10,
-                        FxTheme.toolbar(analysisSearchField),
-                        analysisSummaryLabel,
-                        analysisTable
-                )),
+                analysisResultsCard,
                 analysisChartCard
         );
+        analysisSplit.getStyleClass().add("report-split");
         analysisSplit.setOrientation(javafx.geometry.Orientation.HORIZONTAL);
         analysisSplit.setDividerPositions(0.62);
         updateAnalysisChartVisibility();
 
         BorderPane pane = new BorderPane();
+        pane.getStyleClass().add("report-workbench");
         pane.setTop(filters);
         pane.setCenter(analysisSplit);
         BorderPane.setMargin(filters, new javafx.geometry.Insets(0, 0, 16, 0));

@@ -1144,3 +1144,65 @@
     -fx-pref-width: 120px;
     -fx-min-width: 100px;
 }
+
+/* Stage 5 reports */
+
+.report-tabs {
+    -fx-background-color: transparent;
+}
+
+.report-workbench {
+    -fx-background-color: transparent;
+}
+
+.report-ledger-filters {
+    -fx-background-color: #efe4d4;
+    -fx-border-color: #cdbda9;
+    -fx-border-width: 1 1 1 4;
+    -fx-padding: 7px;
+}
+
+.report-ledger-filters .report-selector {
+    -fx-pref-width: 315px;
+    -fx-min-width: 255px;
+}
+
+.report-result-card {
+    -fx-background-color: #fffaf2;
+    -fx-border-color: #cdbda9;
+    -fx-padding: 9px;
+}
+
+.report-chart-card {
+    -fx-background-color: #fbf3e7;
+    -fx-border-color: #d8c8b5;
+    -fx-padding: 9px;
+}
+
+.report-split {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.report-split .split-pane-divider {
+    -fx-background-color: #cdbda9;
+    -fx-padding: 0 2 0 2;
+}
+
+.report-result-card .toolbar-card {
+    -fx-background-color: #efe4d4;
+    -fx-border-color: #d8c8b5;
+    -fx-padding: 6px;
+}
+
+.report-chart-card .chart {
+    -fx-background-color: transparent;
+}
+
+.report-chart-card .axis {
+    -fx-tick-label-fill: #5d4a3f;
+}
+
+.report-chart-card .axis-label {
+    -fx-text-fill: #5d4a3f;
+}

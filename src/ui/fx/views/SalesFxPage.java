@@ -59,6 +59,7 @@ public class SalesFxPage extends VBox {
     private final Label modeLabel = new Label("Mode: New Sales Invoice");
     private final Label itemCardTitle = new Label("Add Item");
     private Button itemActionButton;
+    private Button itemRemoveButton;
     private final TableView<LineItem> itemTable = new TableView<>();
     private final TableView<SalesInvoice> invoiceTable = new TableView<>();
     private final TableView<SalesInvoiceItem> previousItemsTable = new TableView<>();
@@ -145,12 +146,13 @@ public class SalesFxPage extends VBox {
         addRow(form, 4, "Warranty End", warrantyDatePicker);
 
         itemActionButton = FxTheme.primaryButton("Add");
-        Button remove = FxTheme.secondaryButton("Remove");
+        itemRemoveButton = FxTheme.secondaryButton("Remove");
         Button clear = FxTheme.secondaryButton("Clear");
         itemActionButton.setOnAction(e -> saveCurrentItem());
-        remove.setOnAction(e -> removeItem());
+        itemRemoveButton.setOnAction(e -> removeItem());
         clear.setOnAction(e -> clearItemForm());
-        form.add(FxTheme.actionRow(itemActionButton, remove, clear), 0, 5, 2, 1);
+        setVisible(itemRemoveButton, false);
+        form.add(FxTheme.actionRow(itemActionButton, itemRemoveButton, clear), 0, 5, 2, 1);
         return form;
     }
 
@@ -557,6 +559,14 @@ public class SalesFxPage extends VBox {
         if (itemActionButton != null) {
             itemActionButton.setText(editingItem == null ? "Add" : "Update");
         }
+        if (itemRemoveButton != null) {
+            setVisible(itemRemoveButton, editingItem != null);
+        }
+    }
+
+    private void setVisible(javafx.scene.Node node, boolean visible) {
+        node.setVisible(visible);
+        node.setManaged(visible);
     }
 
     private void selectProduct(int productId) {

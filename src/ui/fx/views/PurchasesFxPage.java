@@ -62,6 +62,7 @@ public class PurchasesFxPage extends VBox {
     private final Label itemCardTitle = new Label("Add Item");
     private final Label priceHintLabel = new Label(" ");
     private Button itemActionButton;
+    private Button itemRemoveButton;
     private final TableView<PurchaseInvoiceItem> itemTable = new TableView<>();
     private final TableView<PurchaseInvoice> invoiceTable = new TableView<>();
     private final TableView<PurchaseInvoiceItem> previousItemsTable = new TableView<>();
@@ -151,12 +152,13 @@ public class PurchasesFxPage extends VBox {
         form.add(priceHintLabel, 1, 3);
 
         itemActionButton = FxTheme.primaryButton("Add");
-        Button remove = FxTheme.secondaryButton("Remove");
+        itemRemoveButton = FxTheme.secondaryButton("Remove");
         Button clear = FxTheme.secondaryButton("Clear");
         itemActionButton.setOnAction(e -> saveCurrentItem());
-        remove.setOnAction(e -> removeItem());
+        itemRemoveButton.setOnAction(e -> removeItem());
         clear.setOnAction(e -> clearItemForm());
-        form.add(FxTheme.actionRow(itemActionButton, remove, clear), 0, 4, 2, 1);
+        setVisible(itemRemoveButton, false);
+        form.add(FxTheme.actionRow(itemActionButton, itemRemoveButton, clear), 0, 4, 2, 1);
         return form;
     }
 
@@ -561,6 +563,14 @@ public class PurchasesFxPage extends VBox {
         if (itemActionButton != null) {
             itemActionButton.setText(editingItem == null ? "Add" : "Update");
         }
+        if (itemRemoveButton != null) {
+            setVisible(itemRemoveButton, editingItem != null);
+        }
+    }
+
+    private void setVisible(javafx.scene.Node node, boolean visible) {
+        node.setVisible(visible);
+        node.setManaged(visible);
     }
 
     private void selectProduct(int productId) {

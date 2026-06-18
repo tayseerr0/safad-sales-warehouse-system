@@ -47,6 +47,8 @@ public class TransfersFxPage extends VBox {
     private final TableView<TransferLine> itemTable = new TableView<>();
     private final TableView<WarehouseTransfer> transferTable = new TableView<>();
     private final TableView<WarehouseTransferItem> transferItemsTable = new TableView<>();
+    private Button itemUpdateButton;
+    private Button itemRemoveButton;
 
     private int editingTransferId = -1;
 
@@ -97,14 +99,19 @@ public class TransfersFxPage extends VBox {
         addRow(form, 5, "Quantity", quantityField);
 
         Button add = FxTheme.primaryButton("Add");
-        Button update = FxTheme.secondaryButton("Update");
-        Button remove = FxTheme.secondaryButton("Remove");
+        itemUpdateButton = FxTheme.secondaryButton("Update");
+        itemRemoveButton = FxTheme.secondaryButton("Remove");
         Button clear = FxTheme.secondaryButton("Clear");
         add.setOnAction(e -> addItem());
-        update.setOnAction(e -> updateSelectedItem());
-        remove.setOnAction(e -> removeItem());
-        clear.setOnAction(e -> currentItems.clear());
-        form.add(FxTheme.actionRow(add, update, remove, clear), 0, 6, 2, 1);
+        itemUpdateButton.setOnAction(e -> updateSelectedItem());
+        itemRemoveButton.setOnAction(e -> removeItem());
+        clear.setOnAction(e -> {
+            currentItems.clear();
+            clearItemForm();
+        });
+        setVisible(itemUpdateButton, false);
+        setVisible(itemRemoveButton, false);
+        form.add(FxTheme.actionRow(add, itemUpdateButton, itemRemoveButton, clear), 0, 6, 2, 1);
         return form;
     }
 
@@ -236,8 +243,7 @@ public class TransfersFxPage extends VBox {
             selected.productName = product.getProductName();
             selected.quantity = quantity;
             itemTable.refresh();
-            itemTable.getSelectionModel().clearSelection();
-            quantityField.clear();
+            clearItemForm();
         } catch (Exception e) {
             FxTheme.showError("Quantity must be valid.");
         }
@@ -245,7 +251,10 @@ public class TransfersFxPage extends VBox {
 
     private void removeItem() {
         TransferLine selected = itemTable.getSelectionModel().getSelectedItem();
-        if (selected != null) currentItems.remove(selected);
+        if (selected != null) {
+            currentItems.remove(selected);
+            clearItemForm();
+        }
     }
 
     private void saveTransfer() {
@@ -338,6 +347,27 @@ public class TransfersFxPage extends VBox {
     private void fillItemForm(TransferLine line) {
         selectProduct(line.productId);
         quantityField.setText(String.valueOf(line.quantity));
+        updateItemButtons(true);
+    }
+
+    private void clearItemForm() {
+        itemTable.getSelectionModel().clearSelection();
+        quantityField.clear();
+        updateItemButtons(false);
+    }
+
+    private void updateItemButtons(boolean itemSelected) {
+        if (itemUpdateButton != null) {
+            setVisible(itemUpdateButton, itemSelected);
+        }
+        if (itemRemoveButton != null) {
+            setVisible(itemRemoveButton, itemSelected);
+        }
+    }
+
+    private void setVisible(javafx.scene.Node node, boolean visible) {
+        node.setVisible(visible);
+        node.setManaged(visible);
     }
 
     private void selectProduct(int productId) {
@@ -375,8 +405,7 @@ public class TransfersFxPage extends VBox {
         modeLabel.setText("Mode: New Transfer");
         transferDatePicker.setValue(LocalDate.now());
         currentItems.clear();
-        quantityField.clear();
-        itemTable.getSelectionModel().clearSelection();
+        clearItemForm();
     }
 
     public static class TransferLine {
