@@ -24,11 +24,24 @@ TRUNCATE TABLE Supplier;
 TRUNCATE TABLE Client;
 TRUNCATE TABLE Brand;
 TRUNCATE TABLE Category;
+TRUNCATE TABLE AppUser;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =========================================================
--- 1. Categories
+-- 1. App Users
+-- Passwords are stored as Java PBKDF2 hashes, not plaintext.
+-- Demo logins:
+-- tayseer / admin123
+-- ruaa / admin321
+-- =========================================================
+
+INSERT INTO AppUser (user_id, username, password_hash, password_salt, active, created_date) VALUES
+(1, 'tayseer', '3po+laEjnDeXPisTLtoUGOn3X5Fl9HKLIxz8mmeM+FU=', 'ZWgoKrR+s0h5TrZce96GsQ==', TRUE, CURRENT_DATE),
+(2, 'ruaa', 'FykG3XToynOPzl+nU4mOumYSmpUlnSf30tStNSLrk68=', 'SosKJIytpQd5K1DTYv2Kow==', TRUE, CURRENT_DATE);
+
+-- =========================================================
+-- 2. Categories
 -- =========================================================
 
 INSERT INTO Category (category_id, category_name, description, category_type) VALUES
@@ -38,7 +51,7 @@ INSERT INTO Category (category_id, category_name, description, category_type) VA
 (4, 'Power and UPS', 'UPS units, power protection, and electrical accessories', 'Power');
 
 -- =========================================================
--- 2. Brands
+-- 3. Brands
 -- =========================================================
 
 INSERT INTO Brand (brand_id, brand_name, description) VALUES
@@ -50,7 +63,7 @@ INSERT INTO Brand (brand_id, brand_name, description) VALUES
 (6, 'R&M', 'Cabling and network infrastructure');
 
 -- =========================================================
--- 3. Clients
+-- 4. Clients
 -- =========================================================
 
 INSERT INTO Client (client_id, client_name, phone, email, registration_date, city, address, client_type) VALUES
@@ -66,7 +79,7 @@ INSERT INTO Client (client_id, client_name, phone, email, registration_date, cit
 (10, 'Jenin Network Shop', '0599001010', 'info@jns.ps', '2026-04-01', 'Jenin', 'Cinema Street', 'Reseller');
 
 -- =========================================================
--- 4. Suppliers
+-- 5. Suppliers
 -- =========================================================
 
 INSERT INTO Supplier (supplier_id, supplier_name, phone, email, starting_date, city, address) VALUES
@@ -77,7 +90,7 @@ INSERT INTO Supplier (supplier_id, supplier_name, phone, email, starting_date, c
 (5, 'R&M Cabling Distributor', '022401005', 'orders@rm-cabling.example', '2024-08-10', 'Nablus', 'Industrial Area');
 
 -- =========================================================
--- 5. Warehouses
+-- 6. Warehouses
 -- =========================================================
 
 INSERT INTO Warehouse (warehouse_id, warehouse_name, location, capacity) VALUES
@@ -86,7 +99,7 @@ INSERT INTO Warehouse (warehouse_id, warehouse_name, location, capacity) VALUES
 (3, 'Gaza Secondary Warehouse', 'Gaza - Al-Rimal', 2000);
 
 -- =========================================================
--- 6. Products
+-- 7. Products
 -- =========================================================
 
 INSERT INTO Product (product_id, product_name, description, default_selling_price, brand_id, category_id) VALUES
@@ -104,7 +117,7 @@ INSERT INTO Product (product_id, product_name, description, default_selling_pric
 (12, 'R&M Patch Panel 24-Port', 'Network patch panel for racks', 45.00, 6, 3);
 
 -- =========================================================
--- 7. Supplier-Product Relationships
+-- 8. Supplier-Product Relationships
 -- =========================================================
 
 INSERT INTO SupplierProduct (supplier_id, product_id, supply_price) VALUES
@@ -124,7 +137,7 @@ INSERT INTO SupplierProduct (supplier_id, product_id, supply_price) VALUES
 (5, 12, 28.00);
 
 -- =========================================================
--- 8. Purchase Invoices
+-- 9. Purchase Invoices
 -- =========================================================
 
 INSERT INTO PurchaseInvoice
@@ -139,7 +152,7 @@ INSERT INTO PurchaseInvoice
 (8, '2026-04-22', '2026-04-28', 11260.00, 'Bank Transfer', 11260.00, 3, 1);
 
 -- =========================================================
--- 9. Purchase Invoice Items
+-- 10. Purchase Invoice Items
 -- =========================================================
 
 INSERT INTO PurchaseInvoiceItem
@@ -174,7 +187,7 @@ INSERT INTO PurchaseInvoiceItem
 (21, 8, 12, 29.00, 30);
 
 -- =========================================================
--- 10. Sales Invoices
+-- 11. Sales Invoices
 -- =========================================================
 
 INSERT INTO SalesInvoice
@@ -191,7 +204,7 @@ INSERT INTO SalesInvoice
 (10, '2026-05-10', 2464.00, 'Cash', 2464.00, 10, 3);
 
 -- =========================================================
--- 11. Sales Invoice Items
+-- 12. Sales Invoice Items
 -- =========================================================
 
 INSERT INTO SalesInvoiceItem
@@ -231,7 +244,7 @@ INSERT INTO SalesInvoiceItem
 (24, 10, 5, 24.00, 10, NULL);
 
 -- =========================================================
--- 12. Warehouse Transfers
+-- 13. Warehouse Transfers
 -- =========================================================
 
 INSERT INTO WarehouseTransfer
@@ -247,7 +260,7 @@ INSERT INTO WarehouseTransferItem
 (4, 2, 7, 4);
 
 -- =========================================================
--- 13. Final Inventory
+-- 14. Final Inventory
 -- This represents the current stock after purchases, sales, and transfers.
 -- =========================================================
 
@@ -283,12 +296,13 @@ INSERT INTO Inventory (product_id, warehouse_id, quantity, threshold) VALUES
 (12, 3, 6, 8);
 
 -- =========================================================
--- 14. Quick Test Queries
+-- 15. Quick Test Queries
 -- =========================================================
 
 SELECT 'Sample data inserted successfully' AS message;
 
 SELECT COUNT(*) AS total_categories FROM Category;
+SELECT COUNT(*) AS total_app_users FROM AppUser;
 SELECT COUNT(*) AS total_brands FROM Brand;
 SELECT COUNT(*) AS total_products FROM Product;
 SELECT COUNT(*) AS total_suppliers FROM Supplier;

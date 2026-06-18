@@ -59,12 +59,15 @@ public class PurchasesFxPage extends VBox {
     private final TextField priceField = FxTheme.textField("Purchase price");
     private final TextField invoiceSearchField = FxTheme.textField("Search purchase invoices");
     private final Label modeLabel = new Label("Mode: New Purchase Invoice");
+    private final Label itemCardTitle = new Label("Add Item");
     private final Label priceHintLabel = new Label(" ");
+    private Button itemActionButton;
     private final TableView<PurchaseInvoiceItem> itemTable = new TableView<>();
     private final TableView<PurchaseInvoice> invoiceTable = new TableView<>();
     private final TableView<PurchaseInvoiceItem> previousItemsTable = new TableView<>();
 
     private int editingInvoiceId = -1;
+    private PurchaseInvoiceItem editingItem;
 
     public PurchasesFxPage() {
         styleSelectors();
@@ -87,6 +90,7 @@ public class PurchasesFxPage extends VBox {
         paymentTypeComboBox.setItems(FXCollections.observableArrayList("Cash", "Card", "Bank Transfer", "Cheque"));
         paymentTypeComboBox.getSelectionModel().selectFirst();
         modeLabel.getStyleClass().add("card-title");
+        itemCardTitle.getStyleClass().add("card-title");
         priceHintLabel.getStyleClass().add("muted-label");
 
         configureTables();
@@ -95,7 +99,7 @@ public class PurchasesFxPage extends VBox {
         productComboBox.setOnAction(e -> updateDefaultPurchasePrice());
 
         VBox detailsCard = FxTheme.card("Invoice Details", createInvoiceForm());
-        VBox itemsCard = FxTheme.card("Add Item", createItemForm());
+        VBox itemsCard = FxTheme.card(new VBox(8, itemCardTitle, createItemForm()));
         HBox entryRow = new HBox(10, detailsCard, itemsCard);
         HBox.setHgrow(detailsCard, Priority.ALWAYS);
         HBox.setHgrow(itemsCard, Priority.ALWAYS);
@@ -138,16 +142,13 @@ public class PurchasesFxPage extends VBox {
         addRow(form, 2, "Purchase Price", priceField);
         form.add(priceHintLabel, 1, 3);
 
-        Button add = FxTheme.primaryButton("Add");
+        itemActionButton = FxTheme.primaryButton("Add");
         Button remove = FxTheme.secondaryButton("Remove");
         Button clear = FxTheme.secondaryButton("Clear");
-        add.setOnAction(e -> addItem());
+        itemActionButton.setOnAction(e -> saveCurrentItem());
         remove.setOnAction(e -> removeItem());
-        clear.setOnAction(e -> {
-            currentItems.clear();
-            updatePaymentToTotal();
-        });
-        form.add(FxTheme.actionRow(add, remove, clear), 0, 4, 2, 1);
+        clear.setOnAction(e -> clearItemForm());
+        form.add(FxTheme.actionRow(itemActionButton, remove, clear), 0, 4, 2, 1);
         return form;
     }
 
@@ -198,6 +199,11 @@ public class PurchasesFxPage extends VBox {
         itemTable.getColumns().add(FxTableUtil.column("Line Total", item -> item.getPurchasePrice().multiply(BigDecimal.valueOf(item.getQuantity())), 120));
         itemTable.setItems(currentItems);
         FxTheme.styleTable(itemTable);
+        itemTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, item) -> {
+            if (item != null) {
+                fillItemForm(item);
+            }
+        });
 
         invoiceTable.getColumns().add(FxTableUtil.column("Invoice ID", PurchaseInvoice::getPurchaseInvoiceId, 90));
         invoiceTable.getColumns().add(FxTableUtil.column("Date", PurchaseInvoice::getInvoiceDate, 110));
@@ -234,7 +240,7 @@ public class PurchasesFxPage extends VBox {
         updateDefaultPurchasePrice();
     }
 
-    private void addItem() {
+    private void saveCurrentItem() {
         Product product = productComboBox.getValue();
         if (product == null) return;
 
@@ -249,22 +255,26 @@ public class PurchasesFxPage extends VBox {
 
             warnIfUnlinkedSupplier(product);
 
-            if (!mergeItem(product, price, quantity)) {
+            if (editingItem == null && !mergeItem(product, price, quantity, null)) {
                 PurchaseInvoiceItem item = new PurchaseInvoiceItem(product.getProductId(), price, quantity);
                 item.setProductName(product.getProductName());
                 currentItems.add(item);
+            } else if (editingItem != null) {
+                updateEditingItem(product, price, quantity);
             }
 
-            quantityField.clear();
+            clearItemForm();
             updatePaymentToTotal();
         } catch (Exception e) {
             FxTheme.showError("Quantity and price must be valid numbers.");
         }
     }
 
-    private boolean mergeItem(Product product, BigDecimal price, int quantity) {
+    private boolean mergeItem(Product product, BigDecimal price, int quantity, PurchaseInvoiceItem excludedItem) {
         for (PurchaseInvoiceItem item : currentItems) {
-            if (item.getProductId() == product.getProductId() && item.getPurchasePrice().compareTo(price) == 0) {
+            if (item != excludedItem
+                    && item.getProductId() == product.getProductId()
+                    && item.getPurchasePrice().compareTo(price) == 0) {
                 item.setQuantity(item.getQuantity() + quantity);
                 itemTable.refresh();
                 return true;
@@ -273,10 +283,23 @@ public class PurchasesFxPage extends VBox {
         return false;
     }
 
+    private void updateEditingItem(Product product, BigDecimal price, int quantity) {
+        if (mergeItem(product, price, quantity, editingItem)) {
+            currentItems.remove(editingItem);
+        } else {
+            editingItem.setProductId(product.getProductId());
+            editingItem.setProductName(product.getProductName());
+            editingItem.setPurchasePrice(price);
+            editingItem.setQuantity(quantity);
+            itemTable.refresh();
+        }
+    }
+
     private void removeItem() {
         PurchaseInvoiceItem selected = itemTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
             currentItems.remove(selected);
+            clearItemForm();
             updatePaymentToTotal();
         }
     }
@@ -430,6 +453,7 @@ public class PurchasesFxPage extends VBox {
         paymentField.setText(invoice.getPayment().toString());
         paymentTypeComboBox.setValue(invoice.getPaymentType());
         currentItems.setAll(invoice.getItems());
+        clearItemForm();
         updatePaymentToTotal();
     }
 
@@ -501,9 +525,38 @@ public class PurchasesFxPage extends VBox {
         arrivalDatePicker.setValue(LocalDate.now().plusDays(5));
         paymentField.setText("0.00");
         paymentTypeComboBox.getSelectionModel().selectFirst();
-        quantityField.clear();
         currentItems.clear();
-        itemTable.getSelectionModel().clearSelection();
+        clearItemForm();
         updateDefaultPurchasePrice();
+    }
+
+    private void fillItemForm(PurchaseInvoiceItem item) {
+        editingItem = item;
+        selectProduct(item.getProductId());
+        quantityField.setText(String.valueOf(item.getQuantity()));
+        priceField.setText(item.getPurchasePrice().toString());
+        updateItemEditMode();
+    }
+
+    private void clearItemForm() {
+        editingItem = null;
+        itemTable.getSelectionModel().clearSelection();
+        quantityField.clear();
+        updateDefaultPurchasePrice();
+        updateItemEditMode();
+    }
+
+    private void updateItemEditMode() {
+        itemCardTitle.setText(editingItem == null ? "Add Item" : "Edit Item");
+        if (itemActionButton != null) {
+            itemActionButton.setText(editingItem == null ? "Add" : "Update");
+        }
+    }
+
+    private void selectProduct(int productId) {
+        productComboBox.getItems().stream()
+                .filter(product -> product.getProductId() == productId)
+                .findFirst()
+                .ifPresent(productComboBox::setValue);
     }
 }

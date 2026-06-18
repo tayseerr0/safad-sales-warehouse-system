@@ -63,6 +63,62 @@
     -fx-font-size: 12px;
 }
 
+.sidebar-user {
+    -fx-text-fill: #d8e4f4;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 8 0 0 0;
+}
+
+.logout-button {
+    -fx-background-color: #17243a;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-background-radius: 9px;
+    -fx-padding: 7 12 7 12;
+    -fx-cursor: hand;
+}
+
+.logout-button:hover {
+    -fx-background-color: #dc2626;
+}
+
+.login-root {
+    -fx-background-color: #f3f7fc;
+    -fx-padding: 32px;
+}
+
+.login-card {
+    -fx-background-color: white;
+    -fx-background-radius: 16px;
+    -fx-border-color: #dce4ee;
+    -fx-border-radius: 16px;
+    -fx-padding: 30px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.10), 22, 0.18, 0, 8);
+}
+
+.login-title {
+    -fx-text-fill: #0a1220;
+    -fx-font-size: 32px;
+    -fx-font-weight: 900;
+}
+
+.login-subtitle {
+    -fx-text-fill: #607082;
+    -fx-font-size: 13px;
+    -fx-padding: 0 0 12 0;
+}
+
+.login-error {
+    -fx-text-fill: #dc2626;
+    -fx-font-size: 12px;
+}
+
+.login-button {
+    -fx-min-height: 38px;
+}
+
 .page-scroll {
     -fx-background: #f3f7fc;
     -fx-background-color: #f3f7fc;

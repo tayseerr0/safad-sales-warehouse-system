@@ -57,11 +57,14 @@ public class SalesFxPage extends VBox {
     private final TextField invoiceSearchField = FxTheme.textField("Search sales invoices");
     private final DatePicker warrantyDatePicker = new DatePicker();
     private final Label modeLabel = new Label("Mode: New Sales Invoice");
+    private final Label itemCardTitle = new Label("Add Item");
+    private Button itemActionButton;
     private final TableView<LineItem> itemTable = new TableView<>();
     private final TableView<SalesInvoice> invoiceTable = new TableView<>();
     private final TableView<SalesInvoiceItem> previousItemsTable = new TableView<>();
 
     private int editingInvoiceId = -1;
+    private LineItem editingItem;
 
     public SalesFxPage() {
         styleSelectors();
@@ -85,13 +88,14 @@ public class SalesFxPage extends VBox {
         paymentTypeComboBox.setItems(FXCollections.observableArrayList("Cash", "Card", "Bank Transfer", "Cheque"));
         paymentTypeComboBox.getSelectionModel().selectFirst();
         modeLabel.getStyleClass().add("card-title");
+        itemCardTitle.getStyleClass().add("card-title");
         configureTables();
 
         productComboBox.setOnAction(e -> updateProductInfo());
         warehouseComboBox.setOnAction(e -> updateProductInfo());
 
         VBox detailsCard = FxTheme.card("Invoice Details", createInvoiceForm());
-        VBox itemsCard = FxTheme.card("Add Item", createItemForm());
+        VBox itemsCard = FxTheme.card(new VBox(8, itemCardTitle, createItemForm()));
         HBox entryRow = new HBox(10, detailsCard, itemsCard);
         HBox.setHgrow(detailsCard, Priority.ALWAYS);
         HBox.setHgrow(itemsCard, Priority.ALWAYS);
@@ -132,16 +136,13 @@ public class SalesFxPage extends VBox {
         addRow(form, 3, "Selling Price", priceField);
         addRow(form, 4, "Warranty End", warrantyDatePicker);
 
-        Button add = FxTheme.primaryButton("Add");
+        itemActionButton = FxTheme.primaryButton("Add");
         Button remove = FxTheme.secondaryButton("Remove");
         Button clear = FxTheme.secondaryButton("Clear");
-        add.setOnAction(e -> addItem());
+        itemActionButton.setOnAction(e -> saveCurrentItem());
         remove.setOnAction(e -> removeItem());
-        clear.setOnAction(e -> {
-            currentItems.clear();
-            updatePaymentToTotal();
-        });
-        form.add(FxTheme.actionRow(add, remove, clear), 0, 5, 2, 1);
+        clear.setOnAction(e -> clearItemForm());
+        form.add(FxTheme.actionRow(itemActionButton, remove, clear), 0, 5, 2, 1);
         return form;
     }
 
@@ -193,6 +194,11 @@ public class SalesFxPage extends VBox {
         itemTable.getColumns().add(FxTableUtil.column("Line Total", LineItem::getLineTotal, 110));
         itemTable.setItems(currentItems);
         FxTheme.styleTable(itemTable);
+        itemTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, item) -> {
+            if (item != null) {
+                fillItemForm(item);
+            }
+        });
 
         invoiceTable.getColumns().add(FxTableUtil.column("Invoice ID", SalesInvoice::getSalesInvoiceId, 90));
         invoiceTable.getColumns().add(FxTableUtil.column("Date", SalesInvoice::getInvoiceDate, 110));
@@ -241,7 +247,7 @@ public class SalesFxPage extends VBox {
         priceField.setText(String.valueOf(product.getDefaultSellingPrice()));
     }
 
-    private void addItem() {
+    private void saveCurrentItem() {
         Product product = productComboBox.getValue();
         Warehouse warehouse = warehouseComboBox.getValue();
         if (product == null || warehouse == null) return;
@@ -256,28 +262,34 @@ public class SalesFxPage extends VBox {
 
             int availableAfterReverse = inventoryDAO.getAvailableStock(product.getProductId(), warehouse.getWarehouseId())
                     + originalQuantity(product.getProductId());
-            int requestedAfterAdd = currentQuantity(product.getProductId()) + quantity;
+            int currentQuantityExcludingEdit = currentQuantity(product.getProductId());
+            if (editingItem != null && editingItem.getProductId() == product.getProductId()) {
+                currentQuantityExcludingEdit -= editingItem.getQuantity();
+            }
+            int requestedAfterChange = currentQuantityExcludingEdit + quantity;
 
-            if (requestedAfterAdd > availableAfterReverse) {
-                FxTheme.showError("Not enough stock. Available: " + availableAfterReverse + ", already in invoice: " + currentQuantity(product.getProductId()));
+            if (requestedAfterChange > availableAfterReverse) {
+                FxTheme.showError("Not enough stock. Available: " + availableAfterReverse + ", already in invoice: " + currentQuantityExcludingEdit);
                 return;
             }
 
-            if (!mergeItem(product, price, quantity, warrantyDatePicker.getValue())) {
+            if (editingItem == null && !mergeItem(product, price, quantity, warrantyDatePicker.getValue(), null)) {
                 currentItems.add(new LineItem(product.getProductId(), product.getProductName(), price, quantity, warrantyDatePicker.getValue()));
+            } else if (editingItem != null) {
+                updateEditingItem(product, price, quantity, warrantyDatePicker.getValue());
             }
 
-            quantityField.clear();
-            warrantyDatePicker.setValue(null);
+            clearItemForm();
             updatePaymentToTotal();
         } catch (Exception e) {
             FxTheme.showError("Quantity and price must be valid.");
         }
     }
 
-    private boolean mergeItem(Product product, BigDecimal price, int quantity, LocalDate warrantyDate) {
+    private boolean mergeItem(Product product, BigDecimal price, int quantity, LocalDate warrantyDate, LineItem excludedItem) {
         for (LineItem item : currentItems) {
-            if (item.productId == product.getProductId()
+            if (item != excludedItem
+                    && item.productId == product.getProductId()
                     && item.sellingPrice.compareTo(price) == 0
                     && sameDate(item.warrantyEndDate, warrantyDate)) {
                 item.quantity += quantity;
@@ -288,10 +300,26 @@ public class SalesFxPage extends VBox {
         return false;
     }
 
+    private void updateEditingItem(Product product, BigDecimal price, int quantity, LocalDate warrantyDate) {
+        if (mergeItem(product, price, quantity, warrantyDate, editingItem)) {
+            currentItems.remove(editingItem);
+        } else {
+            editingItem.setProductId(product.getProductId());
+            editingItem.setProductName(product.getProductName());
+            editingItem.setSellingPrice(price);
+            editingItem.setQuantity(quantity);
+            editingItem.setWarrantyEndDate(warrantyDate);
+            itemTable.refresh();
+        }
+    }
+
     private void removeItem() {
         LineItem selected = itemTable.getSelectionModel().getSelectedItem();
-        if (selected != null) currentItems.remove(selected);
-        updatePaymentToTotal();
+        if (selected != null) {
+            currentItems.remove(selected);
+            clearItemForm();
+            updatePaymentToTotal();
+        }
     }
 
     private void saveInvoice() {
@@ -415,6 +443,7 @@ public class SalesFxPage extends VBox {
                     item.getWarrantyEndDate()
             ));
         }
+        clearItemForm();
         updateProductInfo();
         updatePaymentToTotal();
     }
@@ -490,18 +519,49 @@ public class SalesFxPage extends VBox {
         invoiceDatePicker.setValue(LocalDate.now());
         paymentTypeComboBox.getSelectionModel().selectFirst();
         currentItems.clear();
-        quantityField.clear();
-        warrantyDatePicker.setValue(null);
         updatePaymentToTotal();
+        clearItemForm();
         updateProductInfo();
     }
 
+    private void fillItemForm(LineItem item) {
+        editingItem = item;
+        selectProduct(item.getProductId());
+        quantityField.setText(String.valueOf(item.getQuantity()));
+        priceField.setText(item.getSellingPrice().toString());
+        warrantyDatePicker.setValue(item.getWarrantyEndDate());
+        updateItemEditMode();
+    }
+
+    private void clearItemForm() {
+        editingItem = null;
+        itemTable.getSelectionModel().clearSelection();
+        quantityField.clear();
+        warrantyDatePicker.setValue(null);
+        updateProductInfo();
+        updateItemEditMode();
+    }
+
+    private void updateItemEditMode() {
+        itemCardTitle.setText(editingItem == null ? "Add Item" : "Edit Item");
+        if (itemActionButton != null) {
+            itemActionButton.setText(editingItem == null ? "Add" : "Update");
+        }
+    }
+
+    private void selectProduct(int productId) {
+        productComboBox.getItems().stream()
+                .filter(product -> product.getProductId() == productId)
+                .findFirst()
+                .ifPresent(productComboBox::setValue);
+    }
+
     public static class LineItem {
-        private final int productId;
-        private final String productName;
-        private final BigDecimal sellingPrice;
+        private int productId;
+        private String productName;
+        private BigDecimal sellingPrice;
         private int quantity;
-        private final LocalDate warrantyEndDate;
+        private LocalDate warrantyEndDate;
 
         public LineItem(int productId, String productName, BigDecimal sellingPrice, int quantity, LocalDate warrantyEndDate) {
             this.productId = productId;
@@ -517,5 +577,10 @@ public class SalesFxPage extends VBox {
         public int getQuantity() { return quantity; }
         public LocalDate getWarrantyEndDate() { return warrantyEndDate; }
         public BigDecimal getLineTotal() { return sellingPrice.multiply(BigDecimal.valueOf(quantity)); }
+        public void setProductId(int productId) { this.productId = productId; }
+        public void setProductName(String productName) { this.productName = productName; }
+        public void setSellingPrice(BigDecimal sellingPrice) { this.sellingPrice = sellingPrice; }
+        public void setQuantity(int quantity) { this.quantity = quantity; }
+        public void setWarrantyEndDate(LocalDate warrantyEndDate) { this.warrantyEndDate = warrantyEndDate; }
     }
 }

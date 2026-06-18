@@ -30,8 +30,14 @@ public class MainLayout {
     private final VBox sidebar = new VBox(8);
     private final Map<String, Button> navButtons = new LinkedHashMap<>();
     private final Map<String, Supplier<Node>> pages = new LinkedHashMap<>();
+    private final Runnable logoutHandler;
 
     public MainLayout() {
+        this(null);
+    }
+
+    public MainLayout(Runnable logoutHandler) {
+        this.logoutHandler = logoutHandler;
         root.getStyleClass().add("app-root");
 
         registerPages();
@@ -83,12 +89,27 @@ public class MainLayout {
         VBox spacer = new VBox();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
+        Label userLabel = new Label("Logged in: " + SessionManager.getCurrentUsername());
+        userLabel.getStyleClass().add("sidebar-user");
+
+        Button logoutButton = new Button("Logout");
+        logoutButton.getStyleClass().add("logout-button");
+        logoutButton.setMaxWidth(Double.MAX_VALUE);
+        logoutButton.setOnAction(e -> logout());
+
         Label footer = new Label("COMP333 Project");
         footer.getStyleClass().add("sidebar-footer");
 
-        sidebar.getChildren().addAll(spacer, footer);
+        sidebar.getChildren().addAll(spacer, userLabel, logoutButton, footer);
 
         return sidebar;
+    }
+
+    private void logout() {
+        SessionManager.logout();
+        if (logoutHandler != null) {
+            logoutHandler.run();
+        }
     }
 
     private void addSection(String title, String... pageNames) {

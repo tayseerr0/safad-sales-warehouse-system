@@ -54,6 +54,15 @@ CREATE TABLE Warehouse (
     CHECK (capacity IS NULL OR capacity >= 0)
 );
 
+CREATE TABLE AppUser (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    password_salt VARCHAR(255) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_date DATE DEFAULT (CURRENT_DATE)
+);
+
 -- =========================================================
 -- 2. Product Tables
 -- =========================================================
