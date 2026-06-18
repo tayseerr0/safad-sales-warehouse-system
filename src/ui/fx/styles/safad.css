@@ -895,3 +895,122 @@
     -fx-text-fill: #a54832;
     -fx-font-size: 12px;
 }
+
+/* Stage 2 dashboard reference layout */
+
+.dashboard-ledger-header {
+    -fx-background-color: #fffaf2;
+    -fx-border-color: #d8c8b5;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-padding: 8 10 8 10;
+}
+
+.dashboard-ledger-date {
+    -fx-text-fill: #5e1830;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+}
+
+.dashboard-ledger-path {
+    -fx-text-fill: #786554;
+    -fx-font-size: 12px;
+    -fx-font-weight: 800;
+    -fx-alignment: center-right;
+}
+
+.dashboard-board {
+    -fx-padding: 0;
+}
+
+.dashboard-metric-card {
+    -fx-padding: 10 12 10 12;
+    -fx-border-width: 1 1 1 4;
+}
+
+.dashboard-metric-card.metric-primary {
+    -fx-border-color: #d8c8b5 #d8c8b5 #d8c8b5 #7b1f3d;
+}
+
+.dashboard-metric-card.metric-sage {
+    -fx-border-color: #d8c8b5 #d8c8b5 #d8c8b5 #66735e;
+}
+
+.dashboard-metric-card.metric-clay {
+    -fx-border-color: #d8c8b5 #d8c8b5 #d8c8b5 #a54832;
+}
+
+.dashboard-metric-title {
+    -fx-font-size: 11px;
+}
+
+.dashboard-metric-value {
+    -fx-font-size: 21px;
+}
+
+.dashboard-status-card {
+    -fx-padding: 9 10 9 10;
+    -fx-border-width: 1;
+}
+
+.dashboard-status-value {
+    -fx-font-size: 14px;
+}
+
+.queue-row {
+    -fx-background-color: #fbf4e8;
+    -fx-border-color: #eadfce;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 6px;
+}
+
+.queue-marker {
+    -fx-min-width: 7px;
+    -fx-max-width: 7px;
+    -fx-min-height: 28px;
+    -fx-background-radius: 3px;
+}
+
+.queue-clay {
+    -fx-background-color: #a54832;
+}
+
+.queue-sage {
+    -fx-background-color: #66735e;
+}
+
+.queue-title {
+    -fx-text-fill: #332821;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+}
+
+.queue-detail {
+    -fx-text-fill: #786554;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+.warehouse-load-row {
+    -fx-background-color: #fbf4e8;
+    -fx-border-color: #eadfce;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 6px;
+}
+
+.warehouse-progress {
+    -fx-accent: #66735e;
+}
+
+.warehouse-progress > .track {
+    -fx-background-color: #eadfce;
+    -fx-background-radius: 3px;
+}
+
+.warehouse-progress > .bar {
+    -fx-background-color: #66735e;
+    -fx-background-radius: 3px;
+    -fx-padding: 4px;
+}

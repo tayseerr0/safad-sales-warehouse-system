@@ -5,12 +5,11 @@ import dao.ProductDAO;
 import dao.SupplierDAO;
 import dao.WarehouseDAO;
 import db.DBConnection;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.layout.BorderPane;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -25,6 +24,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -36,16 +36,34 @@ public class DashboardFxPage extends VBox {
     public DashboardFxPage(Consumer<String> navigator) {
         this.navigator = navigator;
         getChildren().add(FxTheme.page(
-                "Dashboard",
-                "Operational overview for sales, stock, purchases, and reports.",
+                "Operations Board",
+                "Daily warehouse, sales, purchasing, and stock control overview.",
                 createContent()
         ));
     }
 
     private VBox createContent() {
-        VBox content = new VBox(12);
-        content.getChildren().addAll(createTopMetrics(), createMainDashboard());
+        VBox content = new VBox(10);
+        content.getChildren().addAll(
+                createLedgerHeader(),
+                createTopMetrics(),
+                createMainBoard()
+        );
         return content;
+    }
+
+    private HBox createLedgerHeader() {
+        Label date = new Label(LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy")));
+        date.getStyleClass().add("dashboard-ledger-date");
+
+        Label workflow = new Label("Stock -> Sales -> Purchases -> Reports");
+        workflow.getStyleClass().add("dashboard-ledger-path");
+
+        HBox row = new HBox(10, date, workflow);
+        row.getStyleClass().add("dashboard-ledger-header");
+        row.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(workflow, Priority.ALWAYS);
+        return row;
     }
 
     private HBox createTopMetrics() {
@@ -58,37 +76,53 @@ public class DashboardFxPage extends VBox {
                 FROM PurchaseInvoiceItem pii
                 """);
         BigDecimal estimatedProfit = estimatedProfit();
+        BigDecimal receivable = amount("""
+                SELECT COALESCE(SUM(GREATEST(amount - payment, 0)), 0) AS amount
+                FROM SalesInvoice
+                """);
 
-        HBox row = new HBox(10,
-                metricCard("Sales", money(sales), "Recorded revenue"),
-                metricCard("Purchases", money(purchases), "Inventory cost"),
-                metricCard("Profit", money(estimatedProfit), "Average item margin"),
-                metricCard("Low Stock", String.valueOf(lowStockCount()), "Needs attention")
+        HBox row = new HBox(8,
+                metricCard("Sales Ledger", money(sales), "Total item revenue", "primary"),
+                metricCard("Purchase Cost", money(purchases), "Inventory bought", "sage"),
+                metricCard("Est. Profit", money(estimatedProfit), "Average margin method", "primary"),
+                metricCard("Receivable", money(receivable), "Unpaid sales balance", "clay"),
+                metricCard("Low Stock", String.valueOf(lowStockCount()), "Rows under threshold", "clay")
         );
 
         row.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
         return row;
     }
 
-    private HBox createMainDashboard() {
-        VBox analytics = new VBox(10, createAnalyticsPane(), createOperationsStrip());
-        HBox.setHgrow(analytics, Priority.ALWAYS);
+    private HBox createMainBoard() {
+        VBox left = new VBox(10, createOperationsStrip(), createAnalyticsPane());
+        HBox.setHgrow(left, Priority.ALWAYS);
 
-        VBox side = new VBox(10, createQuickActions(), createSnapshotPane());
-        side.setPrefWidth(275);
-        side.setMinWidth(245);
+        VBox right = new VBox(10, createAttentionQueue(), createWarehouseLoadPane(), createQuickActions(), createSnapshotPane());
+        right.setPrefWidth(330);
+        right.setMinWidth(290);
 
-        HBox row = new HBox(12, analytics, side);
+        HBox board = new HBox(10, left, right);
+        board.getStyleClass().add("dashboard-board");
+        return board;
+    }
+
+    private HBox createOperationsStrip() {
+        HBox row = new HBox(8,
+                statusCard("Warehouse Load", warehouseLoadText(), "Capacity used across all warehouses"),
+                statusCard("Sales Invoices", String.valueOf(rowCount("SalesInvoice")), "Recorded customer invoices"),
+                statusCard("Purchase Invoices", String.valueOf(rowCount("PurchaseInvoice")), "Supplier invoice records")
+        );
+        row.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
         return row;
     }
 
     private HBox createAnalyticsPane() {
-        Node monthly = FxTheme.card("Monthly Sales", FxChartUtil.connectedPlot(
+        Node monthly = FxTheme.card("Monthly Sales Ledger", FxChartUtil.connectedPlot(
                 "Sales by Month - " + LocalDate.now().getYear(),
                 monthlySales()
         ));
-        Node products = FxTheme.card("Top Products", FxChartUtil.barChart(
-                "Demand by Sold Quantity",
+        Node products = FxTheme.card("Demand Ranking", FxChartUtil.barChart(
+                "Sold Quantity by Product",
                 topSoldProducts()
         ));
 
@@ -98,40 +132,57 @@ public class DashboardFxPage extends VBox {
         return row;
     }
 
+    private VBox createAttentionQueue() {
+        VBox list = new VBox(6);
+        Map<String, Number> rows = lowStockRows();
+
+        if (rows.isEmpty()) {
+            list.getChildren().add(queueRow("Stock levels", "All items are above threshold", "sage"));
+        } else {
+            for (Map.Entry<String, Number> row : rows.entrySet()) {
+                list.getChildren().add(queueRow(row.getKey(), "Short by " + row.getValue(), "clay"));
+            }
+        }
+
+        return FxTheme.card("Attention Queue", list);
+    }
+
+    private VBox createWarehouseLoadPane() {
+        VBox rows = new VBox(7);
+        Map<String, WarehouseLoad> loads = warehouseLoads();
+
+        if (loads.isEmpty()) {
+            rows.getChildren().add(queueRow("Warehouses", "No capacity data available", "clay"));
+        } else {
+            for (Map.Entry<String, WarehouseLoad> entry : loads.entrySet()) {
+                rows.getChildren().add(warehouseLoadRow(entry.getKey(), entry.getValue()));
+            }
+        }
+
+        return FxTheme.card("Warehouse Board", rows);
+    }
+
     private VBox createQuickActions() {
-        VBox box = FxTheme.card("Quick Actions", new VBox(8,
+        VBox actions = new VBox(7,
                 actionButton("New Sale", "Sales", true),
                 actionButton("New Purchase", "Purchases", true),
-                actionButton("Transfer Stock", "Transfers", false),
-                actionButton("Inventory", "Inventory", false),
+                actionButton("Stock Transfer", "Transfers", false),
+                actionButton("Inventory Review", "Inventory", false),
                 actionButton("Reports", "Reports", false)
-        ));
-        box.getStyleClass().add("dashboard-panel");
-        return box;
+        );
+        return FxTheme.card("Workbench Shortcuts", actions);
     }
 
     private VBox createSnapshotPane() {
         GridPane grid = new GridPane();
-        grid.setHgap(8);
-        grid.setVgap(8);
+        grid.setHgap(7);
+        grid.setVgap(7);
         grid.add(snapshotItem("Products", String.valueOf(safeCount(() -> new ProductDAO().getAllProducts().size()))), 0, 0);
         grid.add(snapshotItem("Clients", String.valueOf(safeCount(() -> new ClientDAO().getAllClients().size()))), 1, 0);
         grid.add(snapshotItem("Suppliers", String.valueOf(safeCount(() -> new SupplierDAO().getAllSuppliers().size()))), 0, 1);
         grid.add(snapshotItem("Warehouses", String.valueOf(safeCount(() -> new WarehouseDAO().getAllWarehouses().size()))), 1, 1);
 
-        VBox card = FxTheme.card("System Snapshot", grid);
-        card.getStyleClass().add("dashboard-panel");
-        return card;
-    }
-
-    private HBox createOperationsStrip() {
-        HBox row = new HBox(10,
-                statusCard("Warehouse Load", warehouseLoadText(), "Used capacity across warehouses"),
-                statusCard("Open Flow", "Sales -> Inventory -> Reports", "Main review path"),
-                statusCard("Focus", lowStockCount() + " low stock rows", "Check Inventory before purchases")
-        );
-        row.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
-        return row;
+        return FxTheme.card("Directory Snapshot", grid);
     }
 
     private Button actionButton(String text, String page, boolean primary) {
@@ -141,7 +192,7 @@ public class DashboardFxPage extends VBox {
         return button;
     }
 
-    private VBox metricCard(String title, String value, String subtitle) {
+    private VBox metricCard(String title, String value, String subtitle, String tone) {
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("dashboard-metric-title");
 
@@ -150,10 +201,12 @@ public class DashboardFxPage extends VBox {
 
         Label subtitleLabel = new Label(subtitle);
         subtitleLabel.getStyleClass().add("muted-label");
+        subtitleLabel.setWrapText(true);
 
         VBox card = new VBox(3, titleLabel, valueLabel, subtitleLabel);
         card.getStyleClass().add("dashboard-metric-card");
-        card.setMinWidth(150);
+        card.getStyleClass().add("metric-" + tone);
+        card.setMinWidth(145);
         return card;
     }
 
@@ -174,6 +227,41 @@ public class DashboardFxPage extends VBox {
         return card;
     }
 
+    private HBox queueRow(String title, String detail, String tone) {
+        Label marker = new Label(" ");
+        marker.getStyleClass().add("queue-marker");
+        marker.getStyleClass().add("queue-" + tone);
+
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("queue-title");
+        titleLabel.setWrapText(true);
+
+        Label detailLabel = new Label(detail);
+        detailLabel.getStyleClass().add("queue-detail");
+        detailLabel.setWrapText(true);
+
+        VBox text = new VBox(1, titleLabel, detailLabel);
+        HBox.setHgrow(text, Priority.ALWAYS);
+
+        HBox row = new HBox(7, marker, text);
+        row.getStyleClass().add("queue-row");
+        row.setAlignment(Pos.CENTER_LEFT);
+        return row;
+    }
+
+    private VBox warehouseLoadRow(String name, WarehouseLoad load) {
+        Label label = new Label(name + "  " + load.used + "/" + load.capacity);
+        label.getStyleClass().add("queue-title");
+
+        ProgressBar bar = new ProgressBar(load.ratio());
+        bar.getStyleClass().add("warehouse-progress");
+        bar.setMaxWidth(Double.MAX_VALUE);
+
+        VBox row = new VBox(3, label, bar);
+        row.getStyleClass().add("warehouse-load-row");
+        return row;
+    }
+
     private VBox snapshotItem(String title, String value) {
         Label valueLabel = new Label(value);
         valueLabel.getStyleClass().add("dashboard-snapshot-value");
@@ -181,10 +269,10 @@ public class DashboardFxPage extends VBox {
         Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("muted-label");
 
-        VBox box = new VBox(2, valueLabel, titleLabel);
+        VBox box = new VBox(1, valueLabel, titleLabel);
         box.setAlignment(Pos.CENTER_LEFT);
         box.getStyleClass().add("dashboard-snapshot-item");
-        box.setMinWidth(115);
+        box.setMinWidth(130);
         return box;
     }
 
@@ -205,6 +293,20 @@ public class DashboardFxPage extends VBox {
         return BigDecimal.ZERO;
     }
 
+    private int rowCount(String table) {
+        String sql = "SELECT COUNT(*) AS total FROM " + table;
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            return rs.next() ? rs.getInt("total") : 0;
+
+        } catch (SQLException e) {
+            return 0;
+        }
+    }
+
     private int lowStockCount() {
         String sql = "SELECT COUNT(*) AS total FROM Inventory WHERE quantity < threshold";
 
@@ -217,6 +319,37 @@ public class DashboardFxPage extends VBox {
         } catch (SQLException e) {
             return 0;
         }
+    }
+
+    private Map<String, Number> lowStockRows() {
+        Map<String, Number> values = new LinkedHashMap<>();
+        String sql = """
+                SELECT p.product_name, w.warehouse_name, i.quantity, i.threshold,
+                       (i.threshold - i.quantity) AS shortage
+                FROM Inventory i
+                JOIN Product p ON i.product_id = p.product_id
+                JOIN Warehouse w ON i.warehouse_id = w.warehouse_id
+                WHERE i.quantity < i.threshold
+                ORDER BY shortage DESC, p.product_name
+                LIMIT 5
+                """;
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                String label = shorten(rs.getString("product_name"), 20)
+                        + " @ " + shorten(rs.getString("warehouse_name"), 16)
+                        + " (" + rs.getInt("quantity") + "/" + rs.getInt("threshold") + ")";
+                values.put(label, rs.getInt("shortage"));
+            }
+
+        } catch (SQLException e) {
+            return values;
+        }
+
+        return values;
     }
 
     private BigDecimal estimatedProfit() {
@@ -271,6 +404,34 @@ public class DashboardFxPage extends VBox {
         return "Unavailable";
     }
 
+    private Map<String, WarehouseLoad> warehouseLoads() {
+        Map<String, WarehouseLoad> values = new LinkedHashMap<>();
+        String sql = """
+                SELECT w.warehouse_name,
+                       COALESCE(SUM(i.quantity), 0) AS used_quantity,
+                       COALESCE(w.capacity, 0) AS capacity
+                FROM Warehouse w
+                LEFT JOIN Inventory i ON w.warehouse_id = i.warehouse_id
+                GROUP BY w.warehouse_id, w.warehouse_name, w.capacity
+                ORDER BY w.warehouse_name
+                """;
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                values.put(shorten(rs.getString("warehouse_name"), 30),
+                        new WarehouseLoad(rs.getInt("used_quantity"), rs.getInt("capacity")));
+            }
+
+        } catch (SQLException e) {
+            return values;
+        }
+
+        return values;
+    }
+
     private Map<String, Number> monthlySales() {
         Map<String, Number> values = new LinkedHashMap<>();
         String sql = """
@@ -315,7 +476,7 @@ public class DashboardFxPage extends VBox {
              ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
-                values.put(shorten(rs.getString("product_name")), rs.getInt("quantity_sold"));
+                values.put(shorten(rs.getString("product_name"), 16), rs.getInt("quantity_sold"));
             }
 
         } catch (SQLException e) {
@@ -326,9 +487,9 @@ public class DashboardFxPage extends VBox {
         return values;
     }
 
-    private String shorten(String text) {
-        if (text == null || text.length() <= 16) return text;
-        return text.substring(0, 13) + "...";
+    private String shorten(String text, int maxLength) {
+        if (text == null || text.length() <= maxLength) return text;
+        return text.substring(0, Math.max(0, maxLength - 3)) + "...";
     }
 
     private String money(BigDecimal value) {
@@ -345,5 +506,20 @@ public class DashboardFxPage extends VBox {
 
     private interface CountLoader {
         int load();
+    }
+
+    private static class WarehouseLoad {
+        private final int used;
+        private final int capacity;
+
+        private WarehouseLoad(int used, int capacity) {
+            this.used = used;
+            this.capacity = capacity;
+        }
+
+        private double ratio() {
+            if (capacity <= 0) return 0;
+            return Math.min(1, Math.max(0, used / (double) capacity));
+        }
     }
 }
