@@ -13,6 +13,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 TRUNCATE TABLE WarehouseTransferItem;
 TRUNCATE TABLE WarehouseTransfer;
 TRUNCATE TABLE SalesInvoiceItem;
+TRUNCATE TABLE SalesPayment;
 TRUNCATE TABLE SalesInvoice;
 TRUNCATE TABLE PurchaseInvoiceItem;
 TRUNCATE TABLE PurchaseInvoice;
@@ -203,6 +204,19 @@ INSERT INTO SalesInvoice
 (9, '2026-05-03', 2465.00, 'Cheque', 2465.00, 9, 1),
 (10, '2026-05-10', 2464.00, 'Cash', 2464.00, 10, 3);
 
+INSERT INTO SalesPayment
+(sales_payment_id, sales_invoice_id, payment_date, amount, payment_type) VALUES
+(1, 1, '2026-01-20', 2450.00, 'Cash'),
+(2, 2, '2026-02-10', 2950.00, 'Bank Transfer'),
+(3, 3, '2026-02-25', 3950.00, 'Card'),
+(4, 4, '2026-03-05', 1160.00, 'Cash'),
+(5, 5, '2026-03-18', 1080.00, 'Bank Transfer'),
+(6, 6, '2026-03-28', 1870.00, 'Cash'),
+(7, 7, '2026-04-12', 1008.00, 'Card'),
+(8, 8, '2026-04-28', 1940.00, 'Bank Transfer'),
+(9, 9, '2026-05-03', 2465.00, 'Cheque'),
+(10, 10, '2026-05-10', 2464.00, 'Cash');
+
 -- =========================================================
 -- 12. Sales Invoice Items
 -- =========================================================
@@ -310,6 +324,7 @@ SELECT COUNT(*) AS total_clients FROM Client;
 SELECT COUNT(*) AS total_warehouses FROM Warehouse;
 SELECT COUNT(*) AS total_purchase_invoices FROM PurchaseInvoice;
 SELECT COUNT(*) AS total_sales_invoices FROM SalesInvoice;
+SELECT COUNT(*) AS total_sales_payments FROM SalesPayment;
 SELECT COUNT(*) AS total_inventory_records FROM Inventory;
 
 -- Current stock report

@@ -222,6 +222,22 @@ CREATE TABLE SalesInvoice (
         ON DELETE RESTRICT
 );
 
+CREATE TABLE SalesPayment (
+    sales_payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    sales_invoice_id INT NOT NULL,
+    payment_date DATE NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    payment_type ENUM('Cash', 'Card', 'Bank Transfer', 'Cheque') NOT NULL,
+
+    CHECK (amount > 0),
+
+    CONSTRAINT fk_salespayment_invoice
+        FOREIGN KEY (sales_invoice_id)
+        REFERENCES SalesInvoice(sales_invoice_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
 CREATE TABLE SalesInvoiceItem (
     sales_item_id INT AUTO_INCREMENT PRIMARY KEY,
     sales_invoice_id INT NOT NULL,
@@ -299,6 +315,8 @@ CREATE INDEX idx_client_name ON Client(client_name);
 CREATE INDEX idx_supplier_name ON Supplier(supplier_name);
 CREATE INDEX idx_purchase_date ON PurchaseInvoice(invoice_date);
 CREATE INDEX idx_sales_date ON SalesInvoice(invoice_date);
+CREATE INDEX idx_salespayment_invoice ON SalesPayment(sales_invoice_id);
+CREATE INDEX idx_salespayment_date ON SalesPayment(payment_date);
 CREATE INDEX idx_inventory_warehouse ON Inventory(warehouse_id);
 CREATE INDEX idx_inventory_product ON Inventory(product_id);
 
