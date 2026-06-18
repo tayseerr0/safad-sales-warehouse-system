@@ -50,7 +50,11 @@ public class LoginFxPage extends BorderPane {
         loginButton.setMaxWidth(Double.MAX_VALUE);
         loginButton.setOnAction(e -> login());
 
-        VBox card = new VBox(10, title, subtitle, usernameField, passwordField, messageLabel, loginButton);
+        VBox brand = new VBox(6, FxTheme.logo(82), title, subtitle);
+        brand.getStyleClass().add("login-brand");
+        brand.setAlignment(Pos.CENTER_LEFT);
+
+        VBox card = new VBox(10, brand, usernameField, passwordField, messageLabel, loginButton);
         card.getStyleClass().add("login-card");
         card.setAlignment(Pos.CENTER_LEFT);
         card.setMaxWidth(390);

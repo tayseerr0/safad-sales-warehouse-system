@@ -9,10 +9,14 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+
+import java.io.File;
 
 public class FxTheme {
 
@@ -88,6 +92,21 @@ public class FxTheme {
         row.getStyleClass().add("toolbar-card");
         row.getChildren().addAll(controls);
         return row;
+    }
+
+    public static Node logo(double height) {
+        File logoFile = new File("Safad_Logo.png");
+        if (!logoFile.exists()) {
+            Label fallback = new Label("SAFAD");
+            fallback.getStyleClass().add("logo-fallback");
+            return fallback;
+        }
+
+        ImageView imageView = new ImageView(new Image(logoFile.toURI().toString()));
+        imageView.setFitHeight(height);
+        imageView.setPreserveRatio(true);
+        imageView.setSmooth(true);
+        return imageView;
     }
 
     public static Button primaryButton(String text) {

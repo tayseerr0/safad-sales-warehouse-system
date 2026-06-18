@@ -6,7 +6,9 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import ui.fx.views.CatalogFxPage;
 import ui.fx.views.ClientsFxPage;
@@ -27,7 +29,8 @@ import java.util.function.Supplier;
 public class MainLayout {
 
     private final BorderPane root = new BorderPane();
-    private final VBox sidebar = new VBox(8);
+    private final VBox navRail = new VBox(6);
+    private final Label currentPageLabel = new Label("Dashboard");
     private final Map<String, Button> navButtons = new LinkedHashMap<>();
     private final Map<String, Supplier<Node>> pages = new LinkedHashMap<>();
     private final Runnable logoutHandler;
@@ -41,7 +44,8 @@ public class MainLayout {
         root.getStyleClass().add("app-root");
 
         registerPages();
-        root.setLeft(createSidebar());
+        root.setTop(createTopRibbon());
+        root.setLeft(createNavigationRail());
         showPage("Dashboard");
     }
 
@@ -62,47 +66,68 @@ public class MainLayout {
         pages.put("Transfers", TransfersFxPage::new);
     }
 
-    private VBox createSidebar() {
-        sidebar.getStyleClass().add("sidebar");
+    private HBox createTopRibbon() {
+        HBox ribbon = new HBox(14);
+        ribbon.getStyleClass().add("top-ribbon");
 
+        VBox brandText = new VBox(1);
         Label title = new Label("SAFAD");
-        title.getStyleClass().add("app-title");
+        title.getStyleClass().add("ribbon-title");
 
         Label subtitle = new Label("Sales & Warehouse");
-        subtitle.getStyleClass().add("app-subtitle");
+        subtitle.getStyleClass().add("ribbon-subtitle");
 
-        sidebar.getChildren().addAll(title, subtitle);
+        brandText.getChildren().addAll(title, subtitle);
+
+        currentPageLabel.getStyleClass().add("current-page-label");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label tableModeLabel = new Label("Columns");
+        tableModeLabel.getStyleClass().add("ribbon-utility-label");
+
+        ComboBox<FxTableUtil.ColumnMode> tableModeBox = FxTableUtil.globalColumnModeBox();
+        tableModeBox.getStyleClass().add("ribbon-column-mode");
+
+        Label userLabel = new Label("User: " + SessionManager.getCurrentUsername());
+        userLabel.getStyleClass().add("ribbon-user");
+
+        Button logoutButton = new Button("Logout");
+        logoutButton.getStyleClass().add("logout-button");
+        logoutButton.setOnAction(e -> logout());
+
+        ribbon.getChildren().addAll(
+                FxTheme.logo(42),
+                brandText,
+                currentPageLabel,
+                spacer,
+                tableModeLabel,
+                tableModeBox,
+                userLabel,
+                logoutButton
+        );
+
+        return ribbon;
+    }
+
+    private VBox createNavigationRail() {
+        navRail.getStyleClass().add("nav-rail");
 
         addSection("Overview", "Dashboard");
         addSection("Master Data", "Products / Catalog", "Suppliers", "Clients", "Warehouses");
         addSection("Operations", "Purchases", "Sales", "Inventory", "Transfers");
         addSection("Analysis", "Reports");
 
-        Label tableModeLabel = new Label("Table Columns");
-        tableModeLabel.getStyleClass().add("nav-label");
-
-        ComboBox<FxTableUtil.ColumnMode> tableModeBox = FxTableUtil.globalColumnModeBox();
-        tableModeBox.setMaxWidth(Double.MAX_VALUE);
-
-        sidebar.getChildren().addAll(tableModeLabel, tableModeBox);
-
         VBox spacer = new VBox();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        Label userLabel = new Label("Logged in: " + SessionManager.getCurrentUsername());
-        userLabel.getStyleClass().add("sidebar-user");
-
-        Button logoutButton = new Button("Logout");
-        logoutButton.getStyleClass().add("logout-button");
-        logoutButton.setMaxWidth(Double.MAX_VALUE);
-        logoutButton.setOnAction(e -> logout());
-
         Label footer = new Label("COMP333 Project");
-        footer.getStyleClass().add("sidebar-footer");
+        footer.getStyleClass().add("rail-footer");
 
-        sidebar.getChildren().addAll(spacer, userLabel, logoutButton, footer);
+        navRail.getChildren().addAll(spacer, footer);
 
-        return sidebar;
+        return navRail;
     }
 
     private void logout() {
@@ -115,7 +140,7 @@ public class MainLayout {
     private void addSection(String title, String... pageNames) {
         Label label = new Label(title);
         label.getStyleClass().add("nav-section-label");
-        sidebar.getChildren().add(label);
+        navRail.getChildren().add(label);
 
         for (String pageName : pageNames) {
             Button button = new Button(pageName);
@@ -123,7 +148,7 @@ public class MainLayout {
             button.setMaxWidth(Double.MAX_VALUE);
             button.setOnAction(e -> showPage(pageName));
             navButtons.put(pageName, button);
-            sidebar.getChildren().add(button);
+            navRail.getChildren().add(button);
         }
     }
 
@@ -139,6 +164,7 @@ public class MainLayout {
         scrollPane.setFitToHeight(true);
 
         root.setCenter(scrollPane);
+        currentPageLabel.setText(pageName);
 
         for (Map.Entry<String, Button> entry : navButtons.entrySet()) {
             entry.getValue().getStyleClass().remove("active-nav-button");
