@@ -8,12 +8,15 @@ import javafx.collections.ObservableList;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import model.Product;
 import model.Supplier;
@@ -52,7 +55,12 @@ public class SuppliersFxPage extends VBox {
     public SuppliersFxPage() {
         FxTheme.styleComboBox(linkSupplierComboBox);
         FxTheme.styleComboBox(productComboBox);
-        getChildren().add(FxTheme.ledgerPage("Suppliers", "Supplier records and supplier-product supply prices.", createContent()));
+        linkSupplierComboBox.getStyleClass().add("compact-selector");
+        productComboBox.getStyleClass().add("compact-selector");
+        getStyleClass().add("ledger-page");
+        BorderPane content = createContent();
+        VBox.setVgrow(content, Priority.ALWAYS);
+        getChildren().add(content);
         loadAll();
     }
 
@@ -84,8 +92,7 @@ public class SuppliersFxPage extends VBox {
 
     private GridPane createSupplierForm() {
         GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
+        configureInspectorForm(form);
         addRow(form, 0, "ID", idField);
         addRow(form, 1, "Name", nameField);
         addRow(form, 2, "Phone", phoneField);
@@ -112,8 +119,7 @@ public class SuppliersFxPage extends VBox {
 
     private BorderPane createLinkPane() {
         GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
+        configureInspectorForm(form);
         addRow(form, 0, "Supplier", linkSupplierComboBox);
         addRow(form, 1, "Product", productComboBox);
         addRow(form, 2, "Supply Price", supplyPriceField);
@@ -135,8 +141,32 @@ public class SuppliersFxPage extends VBox {
         return FxTheme.ledgerWorkspace(tableBox, FxTheme.ledgerInspector("Supply Link Inspector", form));
     }
 
+    private void configureInspectorForm(GridPane form) {
+        form.setHgap(8);
+        form.setVgap(8);
+
+        ColumnConstraints labelColumn = new ColumnConstraints();
+        labelColumn.setMinWidth(92);
+        labelColumn.setPrefWidth(98);
+        labelColumn.setHgrow(Priority.NEVER);
+
+        ColumnConstraints fieldColumn = new ColumnConstraints();
+        fieldColumn.setMinWidth(0);
+        fieldColumn.setHgrow(Priority.ALWAYS);
+        fieldColumn.setFillWidth(true);
+
+        form.getColumnConstraints().setAll(labelColumn, fieldColumn);
+    }
+
     private void addRow(GridPane form, int row, String label, javafx.scene.Node field) {
-        form.add(new javafx.scene.control.Label(label), 0, row);
+        Label labelNode = new Label(label);
+        labelNode.setMinWidth(92);
+        labelNode.setMaxWidth(Double.MAX_VALUE);
+        if (field instanceof Region) {
+            ((Region) field).setMaxWidth(Double.MAX_VALUE);
+        }
+        GridPane.setHgrow(field, Priority.ALWAYS);
+        form.add(labelNode, 0, row);
         form.add(field, 1, row);
     }
 

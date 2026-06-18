@@ -30,7 +30,10 @@ public class WarehousesFxPage extends VBox {
     private final TableView<Warehouse> table = new TableView<>();
 
     public WarehousesFxPage() {
-        getChildren().add(FxTheme.ledgerPage("Warehouses", "Warehouse capacity and stock usage records.", createContent()));
+        getStyleClass().add("ledger-page");
+        BorderPane content = createContent();
+        VBox.setVgrow(content, Priority.ALWAYS);
+        getChildren().add(content);
         loadWarehouses();
     }
 

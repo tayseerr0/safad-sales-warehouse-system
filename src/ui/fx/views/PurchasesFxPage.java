@@ -72,7 +72,10 @@ public class PurchasesFxPage extends VBox {
 
     public PurchasesFxPage() {
         styleSelectors();
-        getChildren().add(FxTheme.ledgerPage("Purchases", "Purchase invoice ledger with receiving inspector.", createContent()));
+        getStyleClass().add("ledger-page");
+        BorderPane content = createContent();
+        VBox.setVgrow(content, Priority.ALWAYS);
+        getChildren().add(content);
         loadData();
     }
 
@@ -99,9 +102,11 @@ public class PurchasesFxPage extends VBox {
         supplierComboBox.setOnAction(e -> updateDefaultPurchasePrice());
         productComboBox.setOnAction(e -> updateDefaultPurchasePrice());
 
-        itemTable.setPrefHeight(150);
+        itemTable.setMinHeight(118);
+        itemTable.setPrefHeight(125);
+        itemTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-        VBox editor = new VBox(9,
+        VBox editor = new VBox(6,
                 sectionLabel("Invoice"),
                 createInvoiceForm(),
                 sectionLabel("Line Item"),
@@ -156,10 +161,10 @@ public class PurchasesFxPage extends VBox {
     }
 
     private HBox createSaveButtons() {
-        Button save = FxTheme.primaryButton("Save New");
-        Button update = FxTheme.primaryButton("Update Existing");
-        Button delete = FxTheme.dangerButton("Delete Invoice");
-        Button clear = FxTheme.secondaryButton("New Invoice");
+        Button save = FxTheme.primaryButton("Save");
+        Button update = FxTheme.primaryButton("Update");
+        Button delete = FxTheme.dangerButton("Delete");
+        Button clear = FxTheme.secondaryButton("New");
 
         save.setOnAction(e -> saveInvoice());
         update.setOnAction(e -> updateInvoice());

@@ -35,7 +35,10 @@ public class InventoryFxPage extends VBox {
         FxTheme.styleComboBox(viewComboBox);
         FxTheme.styleComboBox(warehouseComboBox);
         viewComboBox.getStyleClass().add("compact-selector");
-        getChildren().add(FxTheme.ledgerPage("Inventory", "Stock by warehouse with saved threshold controls.", createContent()));
+        getStyleClass().add("ledger-page");
+        BorderPane content = createContent();
+        VBox.setVgrow(content, Priority.ALWAYS);
+        getChildren().add(content);
         loadFilters();
         runReport();
     }

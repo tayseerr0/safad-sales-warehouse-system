@@ -54,10 +54,6 @@
     -fx-background-color: #142a46;
 }
 
-.active-nav-button {
-    -fx-background-color: #0084ff;
-}
-
 .sidebar-footer {
     -fx-text-fill: #7f8ca5;
     -fx-font-size: 12px;
@@ -511,14 +507,40 @@
     -fx-border-color: transparent transparent #cdbda9 transparent;
     -fx-padding: 6 12 6 12;
     -fx-alignment: center-left;
+    -fx-min-height: 43px;
+    -fx-spacing: 7px;
 }
 
-.top-nav-button {
+.top-nav-label {
+    -fx-text-fill: #786554;
+    -fx-font-size: 11px;
+    -fx-font-weight: 900;
+    -fx-padding: 0 6 0 0;
+}
+
+.module-nav-button {
+    -fx-background-color: #fffaf2;
+    -fx-text-fill: #3a2d25;
+    -fx-border-color: #cdbda9;
+    -fx-border-width: 1px;
     -fx-background-radius: 3px;
     -fx-border-radius: 3px;
-    -fx-padding: 6 10 6 10;
-    -fx-min-width: 0;
-    -fx-max-width: none;
+    -fx-font-size: 12px;
+    -fx-font-weight: 900;
+    -fx-padding: 6 12 6 12;
+    -fx-cursor: hand;
+}
+
+.module-nav-button:hover {
+    -fx-background-color: #f4e6d5;
+    -fx-text-fill: #5e1830;
+    -fx-border-color: #a88f78;
+}
+
+.module-nav-button.active-nav-button {
+    -fx-background-color: #6f1d3b;
+    -fx-text-fill: #fffaf2;
+    -fx-border-color: #6f1d3b;
 }
 
 .ribbon-title {
@@ -1098,6 +1120,7 @@
 .workflow-editor {
     -fx-background-color: transparent;
     -fx-padding: 0;
+    -fx-font-size: 11px;
 }
 
 .workflow-entry-row {
@@ -1130,10 +1153,39 @@
     -fx-font-size: 13px;
 }
 
+.workflow-editor .label {
+    -fx-font-size: 11px;
+}
+
+.workflow-editor .ledger-section-label {
+    -fx-font-size: 10px;
+    -fx-padding: 2 0 0 0;
+}
+
 .workflow-form-card .text-field,
 .workflow-form-card .combo-box,
 .workflow-form-card .date-picker {
-    -fx-min-height: 29px;
+    -fx-min-height: 26px;
+    -fx-font-size: 11px;
+}
+
+.workflow-editor .text-field,
+.workflow-editor .combo-box,
+.workflow-editor .date-picker {
+    -fx-min-height: 25px;
+    -fx-pref-height: 25px;
+    -fx-font-size: 11px;
+    -fx-padding: 2 6 2 6;
+}
+
+.workflow-editor .combo-box .list-cell {
+    -fx-font-size: 11px;
+    -fx-padding: 3 7 3 7;
+}
+
+.workflow-editor .date-picker .arrow-button,
+.workflow-editor .combo-box .arrow-button {
+    -fx-padding: 0 8 0 6;
 }
 
 .workflow-form-card .primary-button,
@@ -1142,7 +1194,20 @@
 .workflow-editor .toolbar-card .primary-button,
 .workflow-editor .toolbar-card .secondary-button,
 .workflow-editor .toolbar-card .danger-button {
-    -fx-padding: 6 10 6 10;
+    -fx-padding: 5 9 5 9;
+    -fx-font-size: 11px;
+}
+
+.workflow-editor .data-table {
+    -fx-font-size: 11px;
+}
+
+.workflow-editor .data-table .table-row-cell {
+    -fx-cell-size: 24px;
+}
+
+.workflow-editor .data-table .column-header .label {
+    -fx-font-size: 11px;
 }
 
 .inventory-control-stack {
@@ -1310,6 +1375,11 @@
 .ledger-inspector .combo-box,
 .ledger-inspector .date-picker {
     -fx-min-height: 28px;
+}
+
+.ledger-inspector .clean-selector.compact-selector {
+    -fx-pref-width: 205px;
+    -fx-min-width: 120px;
 }
 
 .ledger-inspector .primary-button,

@@ -69,7 +69,10 @@ public class SalesFxPage extends VBox {
 
     public SalesFxPage() {
         styleSelectors();
-        getChildren().add(FxTheme.ledgerPage("Sales", "Sales invoice ledger with active invoice inspector.", createContent()));
+        getStyleClass().add("ledger-page");
+        BorderPane content = createContent();
+        VBox.setVgrow(content, Priority.ALWAYS);
+        getChildren().add(content);
         loadData();
     }
 
@@ -95,9 +98,11 @@ public class SalesFxPage extends VBox {
         productComboBox.setOnAction(e -> updateProductInfo());
         warehouseComboBox.setOnAction(e -> updateProductInfo());
 
-        itemTable.setPrefHeight(150);
+        itemTable.setMinHeight(118);
+        itemTable.setPrefHeight(125);
+        itemTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-        VBox editor = new VBox(9,
+        VBox editor = new VBox(6,
                 sectionLabel("Invoice"),
                 createInvoiceForm(),
                 sectionLabel("Line Item"),
@@ -152,10 +157,10 @@ public class SalesFxPage extends VBox {
     }
 
     private HBox createSaveButtons() {
-        Button save = FxTheme.primaryButton("Save New");
-        Button update = FxTheme.primaryButton("Update Existing");
-        Button delete = FxTheme.dangerButton("Delete Invoice");
-        Button clear = FxTheme.secondaryButton("New Invoice");
+        Button save = FxTheme.primaryButton("Save");
+        Button update = FxTheme.primaryButton("Update");
+        Button delete = FxTheme.dangerButton("Delete");
+        Button clear = FxTheme.secondaryButton("New");
 
         save.setOnAction(e -> saveInvoice());
         update.setOnAction(e -> updateInvoice());

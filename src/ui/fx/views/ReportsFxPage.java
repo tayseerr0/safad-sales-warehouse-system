@@ -70,7 +70,10 @@ public class ReportsFxPage extends VBox {
     private DefaultTableModel currentAnalysisModel;
 
     public ReportsFxPage() {
-        getChildren().add(FxTheme.ledgerPage("Reports", "Sales, purchase, and analysis report ledgers.", createContent()));
+        getStyleClass().add("ledger-page");
+        TabPane content = createContent();
+        VBox.setVgrow(content, Priority.ALWAYS);
+        getChildren().add(content);
     }
 
     private TabPane createContent() {

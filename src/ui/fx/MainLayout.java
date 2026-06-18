@@ -107,6 +107,10 @@ public class MainLayout {
     private HBox createTopNavigation() {
         topNavBar.getStyleClass().add("top-nav-bar");
 
+        Label modulesLabel = new Label("Modules");
+        modulesLabel.getStyleClass().add("top-nav-label");
+        topNavBar.getChildren().add(modulesLabel);
+
         addSection("Dashboard");
         addSection("Products / Catalog", "Suppliers", "Clients", "Warehouses");
         addSection("Purchases", "Sales", "Inventory", "Transfers");
@@ -125,8 +129,8 @@ public class MainLayout {
     private void addSection(String... pageNames) {
         for (String pageName : pageNames) {
             Button button = new Button(pageName);
-            button.getStyleClass().add("nav-button");
-            button.getStyleClass().add("top-nav-button");
+            button.getStyleClass().setAll("button", "module-nav-button");
+            button.setMinHeight(30);
             button.setOnAction(e -> showPage(pageName));
             navButtons.put(pageName, button);
             topNavBar.getChildren().add(button);

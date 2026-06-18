@@ -38,7 +38,10 @@ public class ClientsFxPage extends VBox {
     public ClientsFxPage() {
         FxTheme.styleComboBox(typeComboBox);
         typeComboBox.getStyleClass().add("compact-selector");
-        getChildren().add(FxTheme.ledgerPage("Clients", "Customer records and client classifications.", createContent()));
+        getStyleClass().add("ledger-page");
+        BorderPane content = createContent();
+        VBox.setVgrow(content, Priority.ALWAYS);
+        getChildren().add(content);
         loadClients();
     }
 

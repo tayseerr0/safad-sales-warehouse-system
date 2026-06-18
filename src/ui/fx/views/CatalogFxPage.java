@@ -39,7 +39,10 @@ public class CatalogFxPage extends VBox {
     private final TableView<Brand> brandTable = new TableView<>();
 
     public CatalogFxPage(ProductsFxPage productsPage) {
-        getChildren().add(FxTheme.ledgerPage("Products / Catalog", "Master product records, categories, and brands.", createContent(productsPage)));
+        getStyleClass().add("ledger-page");
+        TabPane content = createContent(productsPage);
+        VBox.setVgrow(content, javafx.scene.layout.Priority.ALWAYS);
+        getChildren().add(content);
         loadData();
     }
 

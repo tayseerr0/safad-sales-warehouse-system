@@ -35,11 +35,10 @@ public class DashboardFxPage extends VBox {
 
     public DashboardFxPage(Consumer<String> navigator) {
         this.navigator = navigator;
-        getChildren().add(FxTheme.ledgerPage(
-                "Operations Board",
-                "Daily warehouse, sales, purchasing, and stock control overview.",
-                createContent()
-        ));
+        getStyleClass().add("ledger-page");
+        VBox content = createContent();
+        VBox.setVgrow(content, Priority.ALWAYS);
+        getChildren().add(content);
     }
 
     private VBox createContent() {

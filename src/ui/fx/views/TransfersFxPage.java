@@ -59,7 +59,10 @@ public class TransfersFxPage extends VBox {
         fromWarehouseComboBox.getStyleClass().add("compact-selector");
         toWarehouseComboBox.getStyleClass().add("compact-selector");
         productComboBox.getStyleClass().add("compact-selector");
-        getChildren().add(FxTheme.ledgerPage("Transfers", "Warehouse transfer ledger with active transfer inspector.", createContent()));
+        getStyleClass().add("ledger-page");
+        BorderPane content = createContent();
+        VBox.setVgrow(content, Priority.ALWAYS);
+        getChildren().add(content);
         loadData();
     }
 
