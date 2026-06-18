@@ -61,6 +61,63 @@ public class FxTheme {
         return card;
     }
 
+    public static BorderPane ledgerPage(String title, String subtitle, Node content) {
+        BorderPane page = new BorderPane();
+        page.getStyleClass().add("ledger-page");
+        page.setTop(ledgerStrip(title, subtitle));
+        page.setCenter(content);
+        return page;
+    }
+
+    public static VBox ledgerStrip(String title, String subtitle) {
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("ledger-strip-title");
+
+        Label subtitleLabel = new Label(subtitle);
+        subtitleLabel.getStyleClass().add("ledger-strip-subtitle");
+
+        VBox strip = new VBox(2, titleLabel, subtitleLabel);
+        strip.getStyleClass().add("ledger-strip");
+        return strip;
+    }
+
+    public static BorderPane ledgerWorkspace(Node mainSurface, Node inspector) {
+        BorderPane workspace = new BorderPane();
+        workspace.getStyleClass().add("ledger-workspace");
+        workspace.setCenter(mainSurface);
+        workspace.setRight(inspector);
+        BorderPane.setMargin(inspector, new Insets(0, 0, 0, 10));
+        return workspace;
+    }
+
+    public static VBox ledgerInspector(String title, Node content) {
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("ledger-inspector-title");
+
+        VBox inspector = new VBox(9, titleLabel, content);
+        inspector.getStyleClass().add("ledger-inspector");
+        VBox.setVgrow(content, Priority.ALWAYS);
+        return inspector;
+    }
+
+    public static HBox ledgerCommandBar(Node... controls) {
+        HBox row = new HBox(8);
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("ledger-command-bar");
+        row.getChildren().addAll(controls);
+        return row;
+    }
+
+    public static VBox ledgerSurface(String title, Node commandBar, Node table) {
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("ledger-surface-title");
+
+        VBox surface = new VBox(8, titleLabel, commandBar, table);
+        surface.getStyleClass().add("ledger-surface");
+        VBox.setVgrow(table, Priority.ALWAYS);
+        return surface;
+    }
+
     public static void styleWorkbench(BorderPane pane) {
         pane.getStyleClass().add("workbench");
     }

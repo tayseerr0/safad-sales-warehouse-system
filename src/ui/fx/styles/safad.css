@@ -1206,3 +1206,104 @@
 .report-chart-card .axis-label {
     -fx-text-fill: #5d4a3f;
 }
+
+/* Real layout redesign prototype: Products / Catalog */
+
+.ledger-page {
+    -fx-background-color: #f5f0e7;
+    -fx-padding: 10 12 12 12;
+}
+
+.ledger-strip {
+    -fx-background-color: #efe4d4;
+    -fx-border-color: #cdbda9;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 6 9 7 9;
+}
+
+.ledger-strip-title {
+    -fx-text-fill: #4b2230;
+    -fx-font-size: 16px;
+    -fx-font-weight: 900;
+}
+
+.ledger-strip-subtitle {
+    -fx-text-fill: #786554;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+}
+
+.ledger-workspace {
+    -fx-background-color: transparent;
+    -fx-padding: 10 0 0 0;
+}
+
+.ledger-surface {
+    -fx-background-color: #fffaf2;
+    -fx-border-color: #cdbda9;
+    -fx-border-width: 1;
+    -fx-padding: 8px;
+}
+
+.ledger-surface-title {
+    -fx-text-fill: #332821;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-padding: 0 0 2 1;
+}
+
+.ledger-command-bar {
+    -fx-background-color: #f3eadc;
+    -fx-border-color: #dfd0bf;
+    -fx-border-width: 1;
+    -fx-padding: 5px;
+    -fx-alignment: center-left;
+}
+
+.ledger-command-bar .text-field {
+    -fx-min-height: 28px;
+}
+
+.ledger-command-bar .primary-button,
+.ledger-command-bar .secondary-button,
+.ledger-command-bar .danger-button {
+    -fx-padding: 5 10 5 10;
+}
+
+.ledger-inspector {
+    -fx-background-color: #efe4d4;
+    -fx-border-color: #c1af9b;
+    -fx-border-width: 1 1 1 4;
+    -fx-padding: 9px;
+    -fx-min-width: 310px;
+    -fx-pref-width: 320px;
+    -fx-max-width: 340px;
+}
+
+.ledger-inspector-title {
+    -fx-text-fill: #5e1830;
+    -fx-font-size: 13px;
+    -fx-font-weight: 900;
+    -fx-padding: 0 0 5 0;
+}
+
+.ledger-inspector .text-field,
+.ledger-inspector .combo-box,
+.ledger-inspector .date-picker {
+    -fx-min-height: 28px;
+}
+
+.ledger-inspector .primary-button,
+.ledger-inspector .secondary-button,
+.ledger-inspector .danger-button {
+    -fx-padding: 5 9 5 9;
+}
+
+.ledger-page .clean-tabs .tab-content-area {
+    -fx-padding: 8 0 0 0;
+}
+
+.ledger-page .data-table {
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
+}

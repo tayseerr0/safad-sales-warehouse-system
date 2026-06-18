@@ -39,7 +39,7 @@ public class CatalogFxPage extends VBox {
     private final TableView<Brand> brandTable = new TableView<>();
 
     public CatalogFxPage(ProductsFxPage productsPage) {
-        getChildren().add(FxTheme.page("Products / Catalog", "Manage products, categories, and brands.", createContent(productsPage)));
+        getChildren().add(FxTheme.ledgerPage("Products / Catalog", "Master product records, categories, and brands.", createContent(productsPage)));
         loadData();
     }
 
@@ -60,35 +60,17 @@ public class CatalogFxPage extends VBox {
     }
 
     private BorderPane createCategoryPane() {
-        BorderPane pane = new BorderPane();
-        FxTheme.styleWorkbench(pane);
-        VBox formCard = FxTheme.card("Category Form", createCategoryForm());
-        VBox tableCard = FxTheme.card("Category Ledger", new VBox(10,
-                FxTheme.toolbar(categorySearchField),
-                categoryTable
-        ));
-        FxTheme.styleFormCard(formCard);
-        FxTheme.styleTableCard(tableCard);
-        pane.setLeft(formCard);
-        pane.setCenter(tableCard);
-        BorderPane.setMargin(pane.getLeft(), new javafx.geometry.Insets(0, 16, 0, 0));
-        return pane;
+        return FxTheme.ledgerWorkspace(
+                FxTheme.ledgerSurface("Category Ledger", FxTheme.ledgerCommandBar(categorySearchField), categoryTable),
+                FxTheme.ledgerInspector("Category Inspector", createCategoryForm())
+        );
     }
 
     private BorderPane createBrandPane() {
-        BorderPane pane = new BorderPane();
-        FxTheme.styleWorkbench(pane);
-        VBox formCard = FxTheme.card("Brand Form", createBrandForm());
-        VBox tableCard = FxTheme.card("Brand Ledger", new VBox(10,
-                FxTheme.toolbar(brandSearchField),
-                brandTable
-        ));
-        FxTheme.styleFormCard(formCard);
-        FxTheme.styleTableCard(tableCard);
-        pane.setLeft(formCard);
-        pane.setCenter(tableCard);
-        BorderPane.setMargin(pane.getLeft(), new javafx.geometry.Insets(0, 16, 0, 0));
-        return pane;
+        return FxTheme.ledgerWorkspace(
+                FxTheme.ledgerSurface("Brand Ledger", FxTheme.ledgerCommandBar(brandSearchField), brandTable),
+                FxTheme.ledgerInspector("Brand Inspector", createBrandForm())
+        );
     }
 
     private GridPane createCategoryForm() {

@@ -52,17 +52,10 @@ public class ProductsFxPage extends VBox {
         idField.setEditable(false);
         configureTable();
 
-        BorderPane content = new BorderPane();
-        FxTheme.styleWorkbench(content);
-        content.setTop(createToolbar());
-        VBox formCard = FxTheme.card("Product Form", createForm());
-        VBox tableCard = FxTheme.card("Product Ledger", table);
-        FxTheme.styleFormCard(formCard);
-        FxTheme.styleTableCard(tableCard);
-        content.setLeft(formCard);
-        content.setCenter(tableCard);
-        BorderPane.setMargin(content.getLeft(), new javafx.geometry.Insets(0, 16, 0, 0));
-        return content;
+        return FxTheme.ledgerWorkspace(
+                FxTheme.ledgerSurface("Product Ledger", createToolbar(), table),
+                FxTheme.ledgerInspector("Product Inspector", createForm())
+        );
     }
 
     private HBox createToolbar() {
@@ -74,7 +67,7 @@ public class ProductsFxPage extends VBox {
             loadProducts();
         });
 
-        HBox toolbar = FxTheme.toolbar(searchField, searchButton, refreshButton);
+        HBox toolbar = FxTheme.ledgerCommandBar(searchField, searchButton, refreshButton);
         HBox.setHgrow(searchField, Priority.ALWAYS);
         return toolbar;
     }
