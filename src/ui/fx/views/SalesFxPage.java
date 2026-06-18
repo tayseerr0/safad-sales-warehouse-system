@@ -4,6 +4,7 @@ import dao.ClientDAO;
 import dao.InventoryDAO;
 import dao.ProductDAO;
 import dao.SalesInvoiceDAO;
+import dao.SalesPaymentDAO;
 import dao.WarehouseDAO;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -12,6 +13,8 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
@@ -23,6 +26,7 @@ import model.Client;
 import model.Product;
 import model.SalesInvoice;
 import model.SalesInvoiceItem;
+import model.SalesPayment;
 import model.Warehouse;
 import ui.fx.FxTableUtil;
 import ui.fx.FxTheme;
@@ -39,10 +43,12 @@ public class SalesFxPage extends VBox {
     private final ProductDAO productDAO = new ProductDAO();
     private final InventoryDAO inventoryDAO = new InventoryDAO();
     private final SalesInvoiceDAO salesInvoiceDAO = new SalesInvoiceDAO();
+    private final SalesPaymentDAO salesPaymentDAO = new SalesPaymentDAO();
 
     private final ObservableList<LineItem> currentItems = FXCollections.observableArrayList();
     private final ObservableList<SalesInvoice> invoices = FXCollections.observableArrayList();
     private final ObservableList<SalesInvoiceItem> selectedInvoiceItems = FXCollections.observableArrayList();
+    private final ObservableList<SalesPayment> selectedPayments = FXCollections.observableArrayList();
     private final List<SalesInvoiceItem> originalItems = new ArrayList<>();
 
     private final ComboBox<Client> clientComboBox = new ComboBox<>();
@@ -57,11 +63,19 @@ public class SalesFxPage extends VBox {
     private final TextField invoiceSearchField = FxTheme.textField("Search sales invoices");
     private final DatePicker warrantyDatePicker = new DatePicker();
     private final Label modeLabel = new Label("Mode: New Sales Invoice");
+    private final Label paymentInvoiceLabel = new Label("Select an invoice from history first.");
+    private final Label paymentSummaryLabel = new Label("No invoice selected.");
+    private final Label customerCreditLabel = new Label("Customer credit: 0.00");
+    private final DatePicker paymentDatePicker = new DatePicker(LocalDate.now());
+    private final TextField paymentAmountField = FxTheme.textField("Amount");
+    private final ComboBox<String> paymentHistoryTypeComboBox = new ComboBox<>();
     private final TableView<LineItem> itemTable = new TableView<>();
     private final TableView<SalesInvoice> invoiceTable = new TableView<>();
     private final TableView<SalesInvoiceItem> previousItemsTable = new TableView<>();
+    private final TableView<SalesPayment> paymentTable = new TableView<>();
 
     private int editingInvoiceId = -1;
+    private SalesInvoice selectedPaymentInvoice;
 
     public SalesFxPage() {
         styleSelectors();
@@ -74,17 +88,24 @@ public class SalesFxPage extends VBox {
         FxTheme.styleComboBox(warehouseComboBox);
         FxTheme.styleComboBox(productComboBox);
         FxTheme.styleComboBox(paymentTypeComboBox);
+        FxTheme.styleComboBox(paymentHistoryTypeComboBox);
         clientComboBox.getStyleClass().add("compact-selector");
         warehouseComboBox.getStyleClass().add("compact-selector");
         productComboBox.getStyleClass().add("compact-selector");
         paymentTypeComboBox.getStyleClass().add("compact-selector");
+        paymentHistoryTypeComboBox.getStyleClass().add("compact-selector");
     }
 
-    private SplitPane createContent() {
+    private TabPane createContent() {
         availableStockField.setEditable(false);
         paymentTypeComboBox.setItems(FXCollections.observableArrayList("Cash", "Card", "Bank Transfer", "Cheque"));
         paymentTypeComboBox.getSelectionModel().selectFirst();
+        paymentHistoryTypeComboBox.setItems(FXCollections.observableArrayList("Cash", "Card", "Bank Transfer", "Cheque"));
+        paymentHistoryTypeComboBox.getSelectionModel().selectFirst();
         modeLabel.getStyleClass().add("card-title");
+        paymentInvoiceLabel.getStyleClass().add("card-title");
+        paymentSummaryLabel.getStyleClass().add("muted-label");
+        customerCreditLabel.getStyleClass().add("muted-label");
         configureTables();
 
         productComboBox.setOnAction(e -> updateProductInfo());
@@ -104,9 +125,15 @@ public class SalesFxPage extends VBox {
                 createSaveButtons()
         );
 
-        SplitPane splitPane = new SplitPane(editor, createHistoryPane());
-        splitPane.setDividerPositions(0.48);
-        return splitPane;
+        SplitPane invoiceWorkspace = new SplitPane(editor, createHistoryPane());
+        invoiceWorkspace.setDividerPositions(0.48);
+
+        TabPane tabs = new TabPane();
+        tabs.getStyleClass().add("clean-tabs");
+        tabs.getTabs().add(new Tab("Invoices", invoiceWorkspace));
+        tabs.getTabs().add(new Tab("Sales Payments", createPaymentsPane()));
+        tabs.getTabs().forEach(tab -> tab.setClosable(false));
+        return tabs;
     }
 
     private GridPane createInvoiceForm() {
@@ -139,7 +166,6 @@ public class SalesFxPage extends VBox {
         remove.setOnAction(e -> removeItem());
         clear.setOnAction(e -> {
             currentItems.clear();
-            updatePaymentToTotal();
         });
         form.add(FxTheme.actionRow(add, remove, clear), 0, 5, 2, 1);
         return form;
@@ -179,6 +205,43 @@ public class SalesFxPage extends VBox {
         return pane;
     }
 
+    private BorderPane createPaymentsPane() {
+        BorderPane pane = new BorderPane();
+
+        GridPane form = new GridPane();
+        form.setHgap(10);
+        form.setVgap(10);
+        addRow(form, 0, "Payment Date", paymentDatePicker);
+        addRow(form, 1, "Amount", paymentAmountField);
+        addRow(form, 2, "Payment Type", paymentHistoryTypeComboBox);
+
+        Button add = FxTheme.primaryButton("Add Payment");
+        Button update = FxTheme.primaryButton("Update");
+        Button delete = FxTheme.dangerButton("Delete");
+        Button clear = FxTheme.secondaryButton("Clear");
+        add.setOnAction(e -> addPayment());
+        update.setOnAction(e -> updatePayment());
+        delete.setOnAction(e -> deletePayment());
+        clear.setOnAction(e -> clearPaymentForm());
+        form.add(FxTheme.actionRow(add, update, delete, clear), 0, 3, 2, 1);
+
+        VBox left = FxTheme.card("Payment Entry", new VBox(8,
+                paymentInvoiceLabel,
+                paymentSummaryLabel,
+                customerCreditLabel,
+                form
+        ));
+        left.setPrefWidth(380);
+
+        VBox right = FxTheme.card("Payment History", paymentTable);
+        HBox body = new HBox(12, left, right);
+        HBox.setHgrow(right, Priority.ALWAYS);
+
+        pane.setCenter(body);
+        updatePaymentControls();
+        return pane;
+    }
+
     private void addRow(GridPane form, int row, String label, javafx.scene.Node field) {
         form.add(new Label(label), 0, row);
         form.add(field, 1, row);
@@ -201,11 +264,16 @@ public class SalesFxPage extends VBox {
         invoiceTable.getColumns().add(FxTableUtil.column("Warehouse ID", SalesInvoice::getWarehouseId, 110));
         invoiceTable.getColumns().add(FxTableUtil.column("Warehouse", invoice -> warehouseName(invoice.getWarehouseId()), 150));
         invoiceTable.getColumns().add(FxTableUtil.column("Payment Type", SalesInvoice::getPaymentType, 120));
-        invoiceTable.getColumns().add(FxTableUtil.column("Payment", SalesInvoice::getPayment, 100));
+        invoiceTable.getColumns().add(FxTableUtil.column("Paid", SalesInvoice::getPayment, 100));
         invoiceTable.getColumns().add(FxTableUtil.column("Amount", SalesInvoice::getAmount, 110));
+        invoiceTable.getColumns().add(FxTableUtil.column("Balance", this::invoiceBalance, 110));
+        invoiceTable.getColumns().add(FxTableUtil.column("Status", this::paymentStatus, 100));
         FxTableUtil.installSearch(invoiceTable, invoices, invoiceSearchField);
         FxTheme.styleTable(invoiceTable);
-        invoiceTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, invoice) -> loadInvoiceItems(invoice));
+        invoiceTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, invoice) -> {
+            loadInvoiceItems(invoice);
+            loadPaymentsForInvoice(invoice);
+        });
         invoiceTable.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) loadSelectedInvoiceForEdit();
         });
@@ -219,6 +287,16 @@ public class SalesFxPage extends VBox {
         previousItemsTable.getColumns().add(FxTableUtil.column("Line Total", SalesInvoiceItem::getLineTotal, 110));
         previousItemsTable.setItems(selectedInvoiceItems);
         FxTheme.styleTable(previousItemsTable);
+
+        paymentTable.getColumns().add(FxTableUtil.column("Payment ID", SalesPayment::getSalesPaymentId, 90));
+        paymentTable.getColumns().add(FxTableUtil.column("Date", SalesPayment::getPaymentDate, 110));
+        paymentTable.getColumns().add(FxTableUtil.column("Amount", SalesPayment::getAmount, 110));
+        paymentTable.getColumns().add(FxTableUtil.column("Type", SalesPayment::getPaymentType, 130));
+        paymentTable.setItems(selectedPayments);
+        FxTheme.styleTable(paymentTable);
+        paymentTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, payment) -> {
+            if (payment != null) fillPaymentForm(payment);
+        });
     }
 
     private void loadData() {
@@ -269,7 +347,6 @@ public class SalesFxPage extends VBox {
 
             quantityField.clear();
             warrantyDatePicker.setValue(null);
-            updatePaymentToTotal();
         } catch (Exception e) {
             FxTheme.showError("Quantity and price must be valid.");
         }
@@ -291,7 +368,6 @@ public class SalesFxPage extends VBox {
     private void removeItem() {
         LineItem selected = itemTable.getSelectionModel().getSelectedItem();
         if (selected != null) currentItems.remove(selected);
-        updatePaymentToTotal();
     }
 
     private void saveInvoice() {
@@ -302,6 +378,7 @@ public class SalesFxPage extends VBox {
             FxTheme.showInfo("Sales invoice saved. Inventory decreased.");
             clearInvoice();
             loadData();
+            clearPaymentSelection();
         } else {
             FxTheme.showError("Failed to save sales invoice.");
         }
@@ -322,6 +399,7 @@ public class SalesFxPage extends VBox {
             FxTheme.showInfo("Sales invoice updated.");
             clearInvoice();
             loadData();
+            clearPaymentSelection();
         } else {
             FxTheme.showError("Failed to update sales invoice.");
         }
@@ -342,6 +420,7 @@ public class SalesFxPage extends VBox {
             clearInvoice();
             loadData();
             selectedInvoiceItems.clear();
+            clearPaymentSelection();
         } else {
             FxTheme.showError("Failed to delete sales invoice.");
         }
@@ -357,9 +436,15 @@ public class SalesFxPage extends VBox {
 
         BigDecimal payment;
         try {
-            payment = new BigDecimal(paymentField.getText().trim());
+            String paymentText = paymentField.getText() == null ? "" : paymentField.getText().trim();
+            payment = paymentText.isEmpty() ? BigDecimal.ZERO : new BigDecimal(paymentText);
         } catch (Exception e) {
             FxTheme.showError("Payment must be valid.");
+            return null;
+        }
+
+        if (payment.signum() < 0) {
+            FxTheme.showError("Payment cannot be negative.");
             return null;
         }
 
@@ -381,6 +466,160 @@ public class SalesFxPage extends VBox {
         }
     }
 
+    private void loadPaymentsForInvoice(SalesInvoice invoice) {
+        selectedPaymentInvoice = invoice;
+        selectedPayments.clear();
+        clearPaymentForm();
+
+        if (invoice != null) {
+            selectedPayments.setAll(salesPaymentDAO.getPaymentsForInvoice(invoice.getSalesInvoiceId()));
+        }
+
+        updatePaymentControls();
+    }
+
+    private void addPayment() {
+        SalesPayment payment = readPayment(false);
+        if (payment == null) return;
+
+        if (salesPaymentDAO.addPayment(payment)) {
+            FxTheme.showInfo("Payment added.");
+            refreshAfterPaymentChange();
+        } else {
+            FxTheme.showError("Could not add payment.");
+        }
+    }
+
+    private void updatePayment() {
+        SalesPayment selected = paymentTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            FxTheme.showError("Select a payment first.");
+            return;
+        }
+
+        SalesPayment payment = readPayment(true);
+        if (payment == null) return;
+        payment.setSalesPaymentId(selected.getSalesPaymentId());
+
+        if (salesPaymentDAO.updatePayment(payment)) {
+            FxTheme.showInfo("Payment updated.");
+            refreshAfterPaymentChange();
+        } else {
+            FxTheme.showError("Could not update payment.");
+        }
+    }
+
+    private void deletePayment() {
+        SalesPayment selected = paymentTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            FxTheme.showError("Select a payment first.");
+            return;
+        }
+
+        if (salesPaymentDAO.deletePayment(selected)) {
+            refreshAfterPaymentChange();
+        } else {
+            FxTheme.showError("Could not delete payment.");
+        }
+    }
+
+    private SalesPayment readPayment(boolean requireSelectedPayment) {
+        if (selectedPaymentInvoice == null) {
+            FxTheme.showError("Select a sales invoice first.");
+            return null;
+        }
+        if (requireSelectedPayment && paymentTable.getSelectionModel().getSelectedItem() == null) {
+            FxTheme.showError("Select a payment first.");
+            return null;
+        }
+
+        BigDecimal amount;
+        try {
+            amount = new BigDecimal(paymentAmountField.getText().trim());
+        } catch (Exception e) {
+            FxTheme.showError("Payment amount must be valid.");
+            return null;
+        }
+
+        if (amount.signum() <= 0) {
+            FxTheme.showError("Payment amount must be positive.");
+            return null;
+        }
+
+        return new SalesPayment(
+                selectedPaymentInvoice.getSalesInvoiceId(),
+                paymentDatePicker.getValue(),
+                amount,
+                paymentHistoryTypeComboBox.getValue()
+        );
+    }
+
+    private void refreshAfterPaymentChange() {
+        int invoiceId = selectedPaymentInvoice == null ? -1 : selectedPaymentInvoice.getSalesInvoiceId();
+        loadData();
+
+        SalesInvoice refreshed = invoiceById(invoiceId);
+        if (refreshed != null) {
+            invoiceTable.getSelectionModel().select(refreshed);
+            loadPaymentsForInvoice(refreshed);
+        } else {
+            clearPaymentSelection();
+        }
+    }
+
+    private SalesInvoice invoiceById(int invoiceId) {
+        for (SalesInvoice invoice : invoices) {
+            if (invoice.getSalesInvoiceId() == invoiceId) {
+                return invoice;
+            }
+        }
+        return null;
+    }
+
+    private void fillPaymentForm(SalesPayment payment) {
+        paymentDatePicker.setValue(payment.getPaymentDate());
+        paymentAmountField.setText(payment.getAmount().toString());
+        paymentHistoryTypeComboBox.setValue(payment.getPaymentType());
+    }
+
+    private void clearPaymentForm() {
+        paymentDatePicker.setValue(LocalDate.now());
+        paymentAmountField.clear();
+        paymentHistoryTypeComboBox.getSelectionModel().selectFirst();
+        paymentTable.getSelectionModel().clearSelection();
+    }
+
+    private void clearPaymentSelection() {
+        selectedPaymentInvoice = null;
+        selectedPayments.clear();
+        clearPaymentForm();
+        updatePaymentControls();
+    }
+
+    private void updatePaymentControls() {
+        boolean hasInvoice = selectedPaymentInvoice != null;
+        paymentDatePicker.setDisable(!hasInvoice);
+        paymentAmountField.setDisable(!hasInvoice);
+        paymentHistoryTypeComboBox.setDisable(!hasInvoice);
+        paymentTable.setDisable(!hasInvoice);
+
+        if (!hasInvoice) {
+            paymentInvoiceLabel.setText("Select an invoice from history first.");
+            paymentSummaryLabel.setText("No invoice selected.");
+            customerCreditLabel.setText("Customer credit: 0.00");
+            return;
+        }
+
+        paymentInvoiceLabel.setText("Invoice #" + selectedPaymentInvoice.getSalesInvoiceId()
+                + " | " + clientName(selectedPaymentInvoice.getClientId()));
+        paymentSummaryLabel.setText("Amount: " + money(selectedPaymentInvoice.getAmount())
+                + " | Paid: " + money(selectedPaymentInvoice.getPayment())
+                + " | Balance: " + money(invoiceBalance(selectedPaymentInvoice))
+                + " | Status: " + paymentStatus(selectedPaymentInvoice));
+        customerCreditLabel.setText("Customer credit: "
+                + money(salesPaymentDAO.getCustomerCredit(selectedPaymentInvoice.getClientId())));
+    }
+
     private void loadSelectedInvoiceForEdit() {
         SalesInvoice selected = invoiceTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
@@ -399,7 +638,8 @@ public class SalesFxPage extends VBox {
         selectClient(invoice.getClientId());
         selectWarehouse(invoice.getWarehouseId());
         invoiceDatePicker.setValue(invoice.getInvoiceDate());
-        paymentField.setText(invoice.getPayment().toString());
+        paymentField.setText("0.00");
+        paymentField.setEditable(false);
         paymentTypeComboBox.setValue(invoice.getPaymentType());
 
         originalItems.clear();
@@ -416,15 +656,32 @@ public class SalesFxPage extends VBox {
             ));
         }
         updateProductInfo();
-        updatePaymentToTotal();
     }
 
     private BigDecimal totalAmount() {
         return currentItems.stream().map(LineItem::getLineTotal).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private void updatePaymentToTotal() {
-        paymentField.setText(totalAmount().toString());
+    private BigDecimal invoiceBalance(SalesInvoice invoice) {
+        if (invoice == null) return BigDecimal.ZERO;
+        BigDecimal amount = invoice.getAmount() == null ? BigDecimal.ZERO : invoice.getAmount();
+        BigDecimal paid = invoice.getPayment() == null ? BigDecimal.ZERO : invoice.getPayment();
+        return amount.subtract(paid);
+    }
+
+    private String paymentStatus(SalesInvoice invoice) {
+        if (invoice == null) return "Unpaid";
+        BigDecimal balance = invoiceBalance(invoice);
+        BigDecimal paid = invoice.getPayment() == null ? BigDecimal.ZERO : invoice.getPayment();
+
+        if (paid.signum() == 0) return "Unpaid";
+        if (balance.signum() > 0) return "Partial";
+        if (balance.signum() == 0) return "Paid";
+        return "Credit";
+    }
+
+    private String money(BigDecimal value) {
+        return (value == null ? BigDecimal.ZERO : value).setScale(2, java.math.RoundingMode.HALF_UP).toString();
     }
 
     private int originalQuantity(int productId) {
@@ -486,13 +743,14 @@ public class SalesFxPage extends VBox {
     private void clearInvoice() {
         editingInvoiceId = -1;
         modeLabel.setText("Mode: New Sales Invoice");
+        paymentField.setEditable(true);
         originalItems.clear();
         invoiceDatePicker.setValue(LocalDate.now());
         paymentTypeComboBox.getSelectionModel().selectFirst();
         currentItems.clear();
         quantityField.clear();
         warrantyDatePicker.setValue(null);
-        updatePaymentToTotal();
+        paymentField.setText("0.00");
         updateProductInfo();
     }
 

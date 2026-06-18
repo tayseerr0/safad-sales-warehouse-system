@@ -3,6 +3,7 @@ package dao;
 import db.DBConnection;
 import model.SalesInvoice;
 import model.SalesInvoiceItem;
+import model.SalesPayment;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -14,6 +15,7 @@ import java.util.Map;
 public class SalesInvoiceDAO {
 
     private final InventoryDAO inventoryDAO = new InventoryDAO();
+    private final SalesPaymentDAO salesPaymentDAO = new SalesPaymentDAO();
 
     public boolean createSalesInvoice(SalesInvoice invoice) {
         if (invoice == null) {
@@ -31,8 +33,10 @@ public class SalesInvoiceDAO {
                 conn.setAutoCommit(false);
 
                 validateStock(conn, invoice);
+                invoice.setAmount(calculateInvoiceAmount(invoice.getItems()));
 
                 int salesInvoiceId = insertSalesInvoiceHeader(conn, invoice);
+                addInitialPayment(conn, invoice, salesInvoiceId);
 
                 for (SalesInvoiceItem item : invoice.getItems()) {
                     insertSalesInvoiceItem(conn, salesInvoiceId, item);
@@ -48,6 +52,8 @@ public class SalesInvoiceDAO {
                         throw new SQLException("Failed to decrease inventory for product ID: " + item.getProductId());
                     }
                 }
+
+                salesPaymentDAO.refreshInvoicePaymentSummary(conn, salesInvoiceId);
 
                 conn.commit();
                 return true;
@@ -107,6 +113,8 @@ public class SalesInvoiceDAO {
                         throw new SQLException("Failed to decrease inventory for product ID: " + item.getProductId());
                     }
                 }
+
+                salesPaymentDAO.refreshInvoicePaymentSummary(conn, updatedInvoice.getSalesInvoiceId());
 
                 conn.commit();
                 return true;
@@ -233,7 +241,7 @@ public class SalesInvoiceDAO {
 
         try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setDate(1, Date.valueOf(invoice.getInvoiceDate()));
-            stmt.setBigDecimal(2, invoice.getPayment());
+            stmt.setBigDecimal(2, BigDecimal.ZERO);
             stmt.setString(3, invoice.getPaymentType());
             stmt.setBigDecimal(4, invoice.getAmount());
             stmt.setInt(5, invoice.getClientId());
@@ -281,19 +289,18 @@ public class SalesInvoiceDAO {
     private void updateSalesInvoiceHeader(Connection conn, SalesInvoice invoice) throws SQLException {
         String sql = """
                 UPDATE SalesInvoice
-                SET invoice_date = ?, payment = ?, payment_type = ?, amount = ?,
+                SET invoice_date = ?, payment_type = ?, amount = ?,
                     client_id = ?, warehouse_id = ?
                 WHERE sales_invoice_id = ?
                 """;
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setDate(1, Date.valueOf(invoice.getInvoiceDate()));
-            stmt.setBigDecimal(2, invoice.getPayment());
-            stmt.setString(3, invoice.getPaymentType());
-            stmt.setBigDecimal(4, invoice.getAmount());
-            stmt.setInt(5, invoice.getClientId());
-            stmt.setInt(6, invoice.getWarehouseId());
-            stmt.setInt(7, invoice.getSalesInvoiceId());
+            stmt.setString(2, invoice.getPaymentType());
+            stmt.setBigDecimal(3, invoice.getAmount());
+            stmt.setInt(4, invoice.getClientId());
+            stmt.setInt(5, invoice.getWarehouseId());
+            stmt.setInt(6, invoice.getSalesInvoiceId());
 
             if (stmt.executeUpdate() == 0) {
                 throw new SQLException("Updating sales invoice failed.");
@@ -330,6 +337,20 @@ public class SalesInvoiceDAO {
         }
 
         return total;
+    }
+
+    private void addInitialPayment(Connection conn, SalesInvoice invoice, int salesInvoiceId) throws SQLException {
+        if (invoice.getPayment() == null || invoice.getPayment().signum() <= 0) {
+            return;
+        }
+
+        SalesPayment payment = new SalesPayment(
+                salesInvoiceId,
+                invoice.getInvoiceDate(),
+                invoice.getPayment(),
+                invoice.getPaymentType()
+        );
+        salesPaymentDAO.addPayment(conn, payment);
     }
 
     public List<SalesInvoice> getAllSalesInvoices() {
