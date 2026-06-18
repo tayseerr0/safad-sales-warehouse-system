@@ -96,19 +96,27 @@ public class SalesFxPage extends VBox {
 
         VBox detailsCard = FxTheme.card("Invoice Details", createInvoiceForm());
         VBox itemsCard = FxTheme.card(new VBox(8, itemCardTitle, createItemForm()));
+        detailsCard.getStyleClass().add("workflow-form-card");
+        itemsCard.getStyleClass().add("workflow-form-card");
         HBox entryRow = new HBox(10, detailsCard, itemsCard);
+        entryRow.getStyleClass().add("workflow-entry-row");
         HBox.setHgrow(detailsCard, Priority.ALWAYS);
         HBox.setHgrow(itemsCard, Priority.ALWAYS);
 
         itemTable.setPrefHeight(180);
 
+        VBox currentItemsCard = FxTheme.card("Current Items", itemTable);
+        currentItemsCard.getStyleClass().add("workflow-table-card");
+
         VBox editor = new VBox(10,
                 entryRow,
-                FxTheme.card("Current Items", itemTable),
+                currentItemsCard,
                 createSaveButtons()
         );
+        editor.getStyleClass().add("workflow-editor");
 
         SplitPane splitPane = new SplitPane(editor, createHistoryPane());
+        splitPane.getStyleClass().add("workflow-split");
         splitPane.setDividerPositions(0.48);
         return splitPane;
     }
@@ -176,7 +184,9 @@ public class SalesFxPage extends VBox {
         split.setOrientation(javafx.geometry.Orientation.VERTICAL);
         split.setDividerPositions(0.58);
 
-        pane.setCenter(FxTheme.card("Sales Invoice History", split));
+        VBox historyCard = FxTheme.card("Sales Invoice Ledger", split);
+        historyCard.getStyleClass().add("workflow-history-card");
+        pane.setCenter(historyCard);
         return pane;
     }
 

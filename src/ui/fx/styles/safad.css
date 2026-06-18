@@ -1067,3 +1067,80 @@
 .workbench .danger-button {
     -fx-padding: 6 10 6 10;
 }
+
+/* Stage 4 workflow pages */
+
+.workflow-split {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.workflow-split .split-pane-divider {
+    -fx-background-color: #cdbda9;
+    -fx-padding: 0 2 0 2;
+}
+
+.workflow-editor {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.workflow-entry-row {
+    -fx-padding: 0;
+}
+
+.workflow-form-card {
+    -fx-background-color: #fbf3e7;
+    -fx-border-color: #cdbda9;
+    -fx-border-width: 1 1 1 4;
+    -fx-padding: 9px;
+}
+
+.workflow-table-card,
+.workflow-history-card {
+    -fx-background-color: #fffaf2;
+    -fx-border-color: #d8c8b5;
+    -fx-padding: 9px;
+}
+
+.workflow-history-card .toolbar-card {
+    -fx-background-color: #efe4d4;
+    -fx-border-color: #d8c8b5;
+    -fx-padding: 6px;
+}
+
+.workflow-form-card .card-title,
+.workflow-table-card .card-title,
+.workflow-history-card .card-title {
+    -fx-font-size: 13px;
+}
+
+.workflow-form-card .text-field,
+.workflow-form-card .combo-box,
+.workflow-form-card .date-picker {
+    -fx-min-height: 29px;
+}
+
+.workflow-form-card .primary-button,
+.workflow-form-card .secondary-button,
+.workflow-form-card .danger-button,
+.workflow-editor .toolbar-card .primary-button,
+.workflow-editor .toolbar-card .secondary-button,
+.workflow-editor .toolbar-card .danger-button {
+    -fx-padding: 6 10 6 10;
+}
+
+.inventory-control-stack {
+    -fx-background-color: transparent;
+}
+
+.inventory-control-stack .toolbar-card {
+    -fx-background-color: #efe4d4;
+    -fx-border-color: #d8c8b5;
+    -fx-padding: 6px;
+}
+
+.compact-input {
+    -fx-pref-width: 120px;
+    -fx-min-width: 100px;
+}

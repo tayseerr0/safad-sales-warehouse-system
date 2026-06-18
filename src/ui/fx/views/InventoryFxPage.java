@@ -85,8 +85,13 @@ public class InventoryFxPage extends VBox {
         table.getSelectionModel().selectedItemProperty().addListener((obs, oldRow, row) -> fillThresholdEditor(row));
 
         BorderPane content = new BorderPane();
-        content.setTop(new VBox(8, filters, thresholdEditor));
-        content.setCenter(FxTheme.card("Inventory Results", table));
+        FxTheme.styleWorkbench(content);
+        VBox controlStack = new VBox(8, filters, thresholdEditor);
+        controlStack.getStyleClass().add("inventory-control-stack");
+        VBox tableCard = FxTheme.card("Inventory Ledger", table);
+        FxTheme.styleTableCard(tableCard);
+        content.setTop(controlStack);
+        content.setCenter(tableCard);
         BorderPane.setMargin(content.getTop(), new javafx.geometry.Insets(0, 0, 12, 0));
         return content;
     }

@@ -67,13 +67,20 @@ public class TransfersFxPage extends VBox {
 
         itemTable.setPrefHeight(190);
 
+        VBox detailsCard = FxTheme.card("Transfer Details", createForm());
+        detailsCard.getStyleClass().add("workflow-form-card");
+        VBox currentItemsCard = FxTheme.card("Current Transfer Items", itemTable);
+        currentItemsCard.getStyleClass().add("workflow-table-card");
+
         VBox editor = new VBox(10,
-                FxTheme.card("Transfer Details", createForm()),
-                FxTheme.card("Current Transfer Items", itemTable),
+                detailsCard,
+                currentItemsCard,
                 createSaveButtons()
         );
+        editor.getStyleClass().add("workflow-editor");
 
         SplitPane splitPane = new SplitPane(editor, createHistoryPane());
+        splitPane.getStyleClass().add("workflow-split");
         splitPane.setDividerPositions(0.46);
         return splitPane;
     }
@@ -126,7 +133,9 @@ public class TransfersFxPage extends VBox {
         split.setDividerPositions(0.58);
 
         BorderPane pane = new BorderPane();
-        pane.setCenter(FxTheme.card("Transfer History", split));
+        VBox historyCard = FxTheme.card("Transfer Ledger", split);
+        historyCard.getStyleClass().add("workflow-history-card");
+        pane.setCenter(historyCard);
         return pane;
     }
 
