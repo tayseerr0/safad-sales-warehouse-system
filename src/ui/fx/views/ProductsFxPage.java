@@ -53,9 +53,14 @@ public class ProductsFxPage extends VBox {
         configureTable();
 
         BorderPane content = new BorderPane();
+        FxTheme.styleWorkbench(content);
         content.setTop(createToolbar());
-        content.setLeft(FxTheme.card("Product Form", createForm()));
-        content.setCenter(FxTheme.card("Product Table", table));
+        VBox formCard = FxTheme.card("Product Form", createForm());
+        VBox tableCard = FxTheme.card("Product Ledger", table);
+        FxTheme.styleFormCard(formCard);
+        FxTheme.styleTableCard(tableCard);
+        content.setLeft(formCard);
+        content.setCenter(tableCard);
         BorderPane.setMargin(content.getLeft(), new javafx.geometry.Insets(0, 16, 0, 0));
         return content;
     }

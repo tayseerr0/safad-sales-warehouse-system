@@ -70,15 +70,6 @@ public class MainLayout {
         HBox ribbon = new HBox(14);
         ribbon.getStyleClass().add("top-ribbon");
 
-        VBox brandText = new VBox(1);
-        Label title = new Label("SAFAD");
-        title.getStyleClass().add("ribbon-title");
-
-        Label subtitle = new Label("Sales & Warehouse");
-        subtitle.getStyleClass().add("ribbon-subtitle");
-
-        brandText.getChildren().addAll(title, subtitle);
-
         currentPageLabel.getStyleClass().add("current-page-label");
 
         Region spacer = new Region();
@@ -99,7 +90,6 @@ public class MainLayout {
 
         ribbon.getChildren().addAll(
                 FxTheme.logo(42),
-                brandText,
                 currentPageLabel,
                 spacer,
                 tableModeLabel,
@@ -122,10 +112,7 @@ public class MainLayout {
         VBox spacer = new VBox();
         VBox.setVgrow(spacer, Priority.ALWAYS);
 
-        Label footer = new Label("COMP333 Project");
-        footer.getStyleClass().add("rail-footer");
-
-        navRail.getChildren().addAll(spacer, footer);
+        navRail.getChildren().add(spacer);
 
         return navRail;
     }

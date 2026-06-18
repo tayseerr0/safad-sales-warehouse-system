@@ -61,6 +61,20 @@ public class FxTheme {
         return card;
     }
 
+    public static void styleWorkbench(BorderPane pane) {
+        pane.getStyleClass().add("workbench");
+    }
+
+    public static void styleFormCard(VBox card) {
+        card.getStyleClass().add("workbench-form-card");
+        card.setMinWidth(300);
+        card.setPrefWidth(330);
+    }
+
+    public static void styleTableCard(VBox card) {
+        card.getStyleClass().add("workbench-table-card");
+    }
+
     public static VBox statCard(String title, String value, String subtitle) {
         Label valueLabel = new Label(value);
         valueLabel.getStyleClass().add("summary-number");

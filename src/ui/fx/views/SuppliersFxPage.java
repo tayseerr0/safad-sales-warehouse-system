@@ -61,17 +61,21 @@ public class SuppliersFxPage extends VBox {
         configureTables();
 
         BorderPane content = new BorderPane();
+        FxTheme.styleWorkbench(content);
         content.setTop(createToolbar());
 
         VBox supplierFormCard = FxTheme.card("Supplier Form", createSupplierForm());
-        supplierFormCard.setMinWidth(390);
-        supplierFormCard.setPrefWidth(390);
+        VBox supplierTableCard = FxTheme.card("Supplier Ledger", supplierTable);
+        FxTheme.styleFormCard(supplierFormCard);
+        FxTheme.styleTableCard(supplierTableCard);
 
-        HBox body = new HBox(16, supplierFormCard, FxTheme.card("Suppliers", supplierTable));
+        HBox body = new HBox(16, supplierFormCard, supplierTableCard);
         HBox.setHgrow(body.getChildren().get(1), Priority.ALWAYS);
 
         content.setCenter(body);
-        content.setBottom(FxTheme.card("Supplier Products", createLinkPane()));
+        VBox linkCard = FxTheme.card("Supplier Product Ledger", createLinkPane());
+        linkCard.getStyleClass().add("workbench-detail-card");
+        content.setBottom(linkCard);
         BorderPane.setMargin(content.getBottom(), new javafx.geometry.Insets(16, 0, 0, 0));
         return content;
     }
@@ -137,6 +141,7 @@ public class SuppliersFxPage extends VBox {
 
         VBox tableBox = new VBox(10, toolbar, linkTable);
         VBox.setVgrow(linkTable, Priority.ALWAYS);
+        tableBox.getStyleClass().add("workbench-detail-table");
 
         pane.setLeft(form);
         pane.setCenter(tableBox);

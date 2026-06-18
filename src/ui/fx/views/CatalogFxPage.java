@@ -61,22 +61,32 @@ public class CatalogFxPage extends VBox {
 
     private BorderPane createCategoryPane() {
         BorderPane pane = new BorderPane();
-        pane.setLeft(FxTheme.card("Category Form", createCategoryForm()));
-        pane.setCenter(FxTheme.card("Categories", new VBox(10,
+        FxTheme.styleWorkbench(pane);
+        VBox formCard = FxTheme.card("Category Form", createCategoryForm());
+        VBox tableCard = FxTheme.card("Category Ledger", new VBox(10,
                 FxTheme.toolbar(categorySearchField),
                 categoryTable
-        )));
+        ));
+        FxTheme.styleFormCard(formCard);
+        FxTheme.styleTableCard(tableCard);
+        pane.setLeft(formCard);
+        pane.setCenter(tableCard);
         BorderPane.setMargin(pane.getLeft(), new javafx.geometry.Insets(0, 16, 0, 0));
         return pane;
     }
 
     private BorderPane createBrandPane() {
         BorderPane pane = new BorderPane();
-        pane.setLeft(FxTheme.card("Brand Form", createBrandForm()));
-        pane.setCenter(FxTheme.card("Brands", new VBox(10,
+        FxTheme.styleWorkbench(pane);
+        VBox formCard = FxTheme.card("Brand Form", createBrandForm());
+        VBox tableCard = FxTheme.card("Brand Ledger", new VBox(10,
                 FxTheme.toolbar(brandSearchField),
                 brandTable
-        )));
+        ));
+        FxTheme.styleFormCard(formCard);
+        FxTheme.styleTableCard(tableCard);
+        pane.setLeft(formCard);
+        pane.setCenter(tableCard);
         BorderPane.setMargin(pane.getLeft(), new javafx.geometry.Insets(0, 16, 0, 0));
         return pane;
     }

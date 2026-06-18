@@ -1014,3 +1014,56 @@
     -fx-background-radius: 3px;
     -fx-padding: 4px;
 }
+
+/* Stage 3 CRUD workbench pages */
+
+.workbench {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.workbench-form-card {
+    -fx-background-color: #fbf3e7;
+    -fx-border-color: #cdbda9;
+    -fx-border-width: 1 1 1 4;
+    -fx-border-insets: 0;
+}
+
+.workbench-form-card .card-title {
+    -fx-text-fill: #5e1830;
+}
+
+.workbench-table-card {
+    -fx-background-color: #fffaf2;
+}
+
+.workbench-detail-card {
+    -fx-background-color: #fbf3e7;
+    -fx-border-color: #d8c8b5;
+}
+
+.workbench-detail-table {
+    -fx-background-color: transparent;
+}
+
+.workbench .toolbar-card {
+    -fx-background-color: #efe4d4;
+    -fx-border-color: #d8c8b5;
+    -fx-padding: 6px;
+}
+
+.workbench .card {
+    -fx-padding: 10px;
+}
+
+.workbench .text-field,
+.workbench .combo-box,
+.workbench .date-picker {
+    -fx-min-height: 29px;
+}
+
+.workbench .primary-button,
+.workbench .secondary-button,
+.workbench .danger-button {
+    -fx-padding: 6 10 6 10;
+}
