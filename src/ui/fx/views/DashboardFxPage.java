@@ -35,7 +35,7 @@ public class DashboardFxPage extends VBox {
 
     public DashboardFxPage(Consumer<String> navigator) {
         this.navigator = navigator;
-        getChildren().add(FxTheme.page(
+        getChildren().add(FxTheme.ledgerPage(
                 "Operations Board",
                 "Daily warehouse, sales, purchasing, and stock control overview.",
                 createContent()
@@ -117,11 +117,11 @@ public class DashboardFxPage extends VBox {
     }
 
     private HBox createAnalyticsPane() {
-        Node monthly = FxTheme.card("Monthly Sales Ledger", FxChartUtil.connectedPlot(
+        Node monthly = FxTheme.ledgerSurface("Monthly Sales Ledger", FxTheme.ledgerCommandBar(new Label("Trend")), FxChartUtil.connectedPlot(
                 "Sales by Month - " + LocalDate.now().getYear(),
                 monthlySales()
         ));
-        Node products = FxTheme.card("Demand Ranking", FxChartUtil.barChart(
+        Node products = FxTheme.ledgerSurface("Demand Ranking", FxTheme.ledgerCommandBar(new Label("Top sold items")), FxChartUtil.barChart(
                 "Sold Quantity by Product",
                 topSoldProducts()
         ));
@@ -144,7 +144,7 @@ public class DashboardFxPage extends VBox {
             }
         }
 
-        return FxTheme.card("Attention Queue", list);
+        return FxTheme.ledgerSurface("Attention Queue", FxTheme.ledgerCommandBar(new Label("Stock alerts")), list);
     }
 
     private VBox createWarehouseLoadPane() {
@@ -159,7 +159,7 @@ public class DashboardFxPage extends VBox {
             }
         }
 
-        return FxTheme.card("Warehouse Board", rows);
+        return FxTheme.ledgerSurface("Warehouse Board", FxTheme.ledgerCommandBar(new Label("Capacity use")), rows);
     }
 
     private VBox createQuickActions() {
@@ -170,7 +170,7 @@ public class DashboardFxPage extends VBox {
                 actionButton("Inventory Review", "Inventory", false),
                 actionButton("Reports", "Reports", false)
         );
-        return FxTheme.card("Workbench Shortcuts", actions);
+        return FxTheme.ledgerSurface("Workbench Shortcuts", FxTheme.ledgerCommandBar(new Label("Open module")), actions);
     }
 
     private VBox createSnapshotPane() {
@@ -182,7 +182,7 @@ public class DashboardFxPage extends VBox {
         grid.add(snapshotItem("Suppliers", String.valueOf(safeCount(() -> new SupplierDAO().getAllSuppliers().size()))), 0, 1);
         grid.add(snapshotItem("Warehouses", String.valueOf(safeCount(() -> new WarehouseDAO().getAllWarehouses().size()))), 1, 1);
 
-        return FxTheme.card("Directory Snapshot", grid);
+        return FxTheme.ledgerSurface("Directory Snapshot", FxTheme.ledgerCommandBar(new Label("Master data")), grid);
     }
 
     private Button actionButton(String text, String page, boolean primary) {

@@ -30,7 +30,7 @@ public class WarehousesFxPage extends VBox {
     private final TableView<Warehouse> table = new TableView<>();
 
     public WarehousesFxPage() {
-        getChildren().add(FxTheme.page("Warehouses", "Manage warehouse master data.", createContent()));
+        getChildren().add(FxTheme.ledgerPage("Warehouses", "Warehouse capacity and stock usage records.", createContent()));
         loadWarehouses();
     }
 
@@ -38,17 +38,10 @@ public class WarehousesFxPage extends VBox {
         idField.setEditable(false);
         configureTable();
 
-        BorderPane content = new BorderPane();
-        FxTheme.styleWorkbench(content);
-        content.setTop(createToolbar());
-        VBox formCard = FxTheme.card("Warehouse Form", createForm());
-        VBox tableCard = FxTheme.card("Warehouse Ledger", table);
-        FxTheme.styleFormCard(formCard);
-        FxTheme.styleTableCard(tableCard);
-        content.setLeft(formCard);
-        content.setCenter(tableCard);
-        BorderPane.setMargin(content.getLeft(), new javafx.geometry.Insets(0, 16, 0, 0));
-        return content;
+        return FxTheme.ledgerWorkspace(
+                FxTheme.ledgerSurface("Warehouse Ledger", createToolbar(), table),
+                FxTheme.ledgerInspector("Warehouse Inspector", createForm())
+        );
     }
 
     private HBox createToolbar() {
@@ -57,7 +50,7 @@ public class WarehousesFxPage extends VBox {
         searchButton.setOnAction(e -> searchWarehouses());
         refreshButton.setOnAction(e -> loadWarehouses());
 
-        HBox toolbar = FxTheme.toolbar(searchField, searchButton, refreshButton);
+        HBox toolbar = FxTheme.ledgerCommandBar(searchField, searchButton, refreshButton);
         HBox.setHgrow(searchField, Priority.ALWAYS);
         return toolbar;
     }

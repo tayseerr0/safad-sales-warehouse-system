@@ -59,32 +59,32 @@ public class TransfersFxPage extends VBox {
         fromWarehouseComboBox.getStyleClass().add("compact-selector");
         toWarehouseComboBox.getStyleClass().add("compact-selector");
         productComboBox.getStyleClass().add("compact-selector");
-        getChildren().add(FxTheme.page("Transfers", "Move product quantities between warehouses and edit transfer items.", createContent()));
+        getChildren().add(FxTheme.ledgerPage("Transfers", "Warehouse transfer ledger with active transfer inspector.", createContent()));
         loadData();
     }
 
-    private SplitPane createContent() {
+    private BorderPane createContent() {
         modeLabel.getStyleClass().add("card-title");
         configureTables();
 
-        itemTable.setPrefHeight(190);
+        itemTable.setPrefHeight(155);
 
-        VBox detailsCard = FxTheme.card("Transfer Details", createForm());
-        detailsCard.getStyleClass().add("workflow-form-card");
-        VBox currentItemsCard = FxTheme.card("Current Transfer Items", itemTable);
-        currentItemsCard.getStyleClass().add("workflow-table-card");
-
-        VBox editor = new VBox(10,
-                detailsCard,
-                currentItemsCard,
+        VBox editor = new VBox(9,
+                sectionLabel("Transfer"),
+                createForm(),
+                sectionLabel("Current Items"),
+                itemTable,
                 createSaveButtons()
         );
         editor.getStyleClass().add("workflow-editor");
 
-        SplitPane splitPane = new SplitPane(editor, createHistoryPane());
-        splitPane.getStyleClass().add("workflow-split");
-        splitPane.setDividerPositions(0.46);
-        return splitPane;
+        return FxTheme.ledgerWorkspace(createHistoryPane(), FxTheme.ledgerInspector("Transfer Inspector", editor));
+    }
+
+    private Label sectionLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("ledger-section-label");
+        return label;
     }
 
     private GridPane createForm() {
@@ -129,7 +129,7 @@ public class TransfersFxPage extends VBox {
         HBox toolbar = FxTheme.toolbar(transferSearchField);
         HBox.setHgrow(transferSearchField, Priority.ALWAYS);
 
-        VBox top = new VBox(10, toolbar, transferTable);
+        VBox top = new VBox(10, transferTable);
         VBox bottom = new VBox(10,
                 FxTheme.toolbar(new Label("Selected Transfer Items")),
                 transferItemsTable
@@ -140,9 +140,7 @@ public class TransfersFxPage extends VBox {
         split.setDividerPositions(0.58);
 
         BorderPane pane = new BorderPane();
-        VBox historyCard = FxTheme.card("Transfer Ledger", split);
-        historyCard.getStyleClass().add("workflow-history-card");
-        pane.setCenter(historyCard);
+        pane.setCenter(FxTheme.ledgerSurface("Transfer Ledger", toolbar, split));
         return pane;
     }
 

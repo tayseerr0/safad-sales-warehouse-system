@@ -29,7 +29,7 @@ import java.util.function.Supplier;
 public class MainLayout {
 
     private final BorderPane root = new BorderPane();
-    private final VBox navRail = new VBox(6);
+    private final HBox topNavBar = new HBox(6);
     private final Label currentPageLabel = new Label("Dashboard");
     private final Map<String, Button> navButtons = new LinkedHashMap<>();
     private final Map<String, Supplier<Node>> pages = new LinkedHashMap<>();
@@ -44,8 +44,7 @@ public class MainLayout {
         root.getStyleClass().add("app-root");
 
         registerPages();
-        root.setTop(createTopRibbon());
-        root.setLeft(createNavigationRail());
+        root.setTop(createTopArea());
         showPage("Dashboard");
     }
 
@@ -64,6 +63,10 @@ public class MainLayout {
         pages.put("Inventory", InventoryFxPage::new);
         pages.put("Reports", ReportsFxPage::new);
         pages.put("Transfers", TransfersFxPage::new);
+    }
+
+    private VBox createTopArea() {
+        return new VBox(createTopRibbon(), createTopNavigation());
     }
 
     private HBox createTopRibbon() {
@@ -101,20 +104,15 @@ public class MainLayout {
         return ribbon;
     }
 
-    private VBox createNavigationRail() {
-        navRail.getStyleClass().add("nav-rail");
+    private HBox createTopNavigation() {
+        topNavBar.getStyleClass().add("top-nav-bar");
 
-        addSection("Overview", "Dashboard");
-        addSection("Master Data", "Products / Catalog", "Suppliers", "Clients", "Warehouses");
-        addSection("Operations", "Purchases", "Sales", "Inventory", "Transfers");
-        addSection("Analysis", "Reports");
+        addSection("Dashboard");
+        addSection("Products / Catalog", "Suppliers", "Clients", "Warehouses");
+        addSection("Purchases", "Sales", "Inventory", "Transfers");
+        addSection("Reports");
 
-        VBox spacer = new VBox();
-        VBox.setVgrow(spacer, Priority.ALWAYS);
-
-        navRail.getChildren().add(spacer);
-
-        return navRail;
+        return topNavBar;
     }
 
     private void logout() {
@@ -124,18 +122,14 @@ public class MainLayout {
         }
     }
 
-    private void addSection(String title, String... pageNames) {
-        Label label = new Label(title);
-        label.getStyleClass().add("nav-section-label");
-        navRail.getChildren().add(label);
-
+    private void addSection(String... pageNames) {
         for (String pageName : pageNames) {
             Button button = new Button(pageName);
             button.getStyleClass().add("nav-button");
-            button.setMaxWidth(Double.MAX_VALUE);
+            button.getStyleClass().add("top-nav-button");
             button.setOnAction(e -> showPage(pageName));
             navButtons.put(pageName, button);
-            navRail.getChildren().add(button);
+            topNavBar.getChildren().add(button);
         }
     }
 

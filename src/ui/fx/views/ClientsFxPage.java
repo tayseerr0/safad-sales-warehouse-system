@@ -38,7 +38,7 @@ public class ClientsFxPage extends VBox {
     public ClientsFxPage() {
         FxTheme.styleComboBox(typeComboBox);
         typeComboBox.getStyleClass().add("compact-selector");
-        getChildren().add(FxTheme.page("Clients", "Add, update, delete, search, and filter SAFAD clients.", createContent()));
+        getChildren().add(FxTheme.ledgerPage("Clients", "Customer records and client classifications.", createContent()));
         loadClients();
     }
 
@@ -49,17 +49,10 @@ public class ClientsFxPage extends VBox {
 
         configureTable();
 
-        BorderPane content = new BorderPane();
-        FxTheme.styleWorkbench(content);
-        content.setTop(createToolbar());
-        VBox formCard = FxTheme.card("Client Form", createForm());
-        VBox tableCard = FxTheme.card("Client Ledger", table);
-        FxTheme.styleFormCard(formCard);
-        FxTheme.styleTableCard(tableCard);
-        content.setLeft(formCard);
-        content.setCenter(tableCard);
-        BorderPane.setMargin(content.getLeft(), new javafx.geometry.Insets(0, 16, 0, 0));
-        return content;
+        return FxTheme.ledgerWorkspace(
+                FxTheme.ledgerSurface("Client Ledger", createToolbar(), table),
+                FxTheme.ledgerInspector("Client Inspector", createForm())
+        );
     }
 
     private HBox createToolbar() {
@@ -68,7 +61,7 @@ public class ClientsFxPage extends VBox {
         searchButton.setOnAction(e -> searchClients());
         refreshButton.setOnAction(e -> loadClients());
 
-        HBox toolbar = FxTheme.toolbar(searchField, searchButton, refreshButton);
+        HBox toolbar = FxTheme.ledgerCommandBar(searchField, searchButton, refreshButton);
         HBox.setHgrow(searchField, Priority.ALWAYS);
         return toolbar;
     }

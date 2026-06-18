@@ -506,6 +506,21 @@
     -fx-alignment: center-left;
 }
 
+.top-nav-bar {
+    -fx-background-color: #efe4d4;
+    -fx-border-color: transparent transparent #cdbda9 transparent;
+    -fx-padding: 6 12 6 12;
+    -fx-alignment: center-left;
+}
+
+.top-nav-button {
+    -fx-background-radius: 3px;
+    -fx-border-radius: 3px;
+    -fx-padding: 6 10 6 10;
+    -fx-min-width: 0;
+    -fx-max-width: none;
+}
+
 .ribbon-title {
     -fx-text-fill: #5e1830;
     -fx-font-size: 21px;
@@ -1238,6 +1253,10 @@
     -fx-padding: 10 0 0 0;
 }
 
+.ledger-stacked-workspace {
+    -fx-background-color: transparent;
+}
+
 .ledger-surface {
     -fx-background-color: #fffaf2;
     -fx-border-color: #cdbda9;
@@ -1276,8 +1295,8 @@
     -fx-border-width: 1 1 1 4;
     -fx-padding: 9px;
     -fx-min-width: 310px;
-    -fx-pref-width: 320px;
-    -fx-max-width: 340px;
+    -fx-pref-width: 340px;
+    -fx-max-width: 380px;
 }
 
 .ledger-inspector-title {
@@ -1297,6 +1316,13 @@
 .ledger-inspector .secondary-button,
 .ledger-inspector .danger-button {
     -fx-padding: 5 9 5 9;
+}
+
+.ledger-section-label {
+    -fx-text-fill: #5e1830;
+    -fx-font-size: 11px;
+    -fx-font-weight: 900;
+    -fx-padding: 4 0 0 0;
 }
 
 .ledger-page .clean-tabs .tab-content-area {

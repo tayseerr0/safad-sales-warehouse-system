@@ -9,6 +9,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -34,7 +35,7 @@ public class InventoryFxPage extends VBox {
         FxTheme.styleComboBox(viewComboBox);
         FxTheme.styleComboBox(warehouseComboBox);
         viewComboBox.getStyleClass().add("compact-selector");
-        getChildren().add(FxTheme.page("Inventory", "View current stock, warehouse stock, and saved-threshold low stock.", createContent()));
+        getChildren().add(FxTheme.ledgerPage("Inventory", "Stock by warehouse with saved threshold controls.", createContent()));
         loadFilters();
         runReport();
     }
@@ -72,28 +73,22 @@ public class InventoryFxPage extends VBox {
         Button updateThreshold = FxTheme.primaryButton("Update Threshold");
         updateThreshold.setOnAction(e -> updateThreshold());
 
-        HBox thresholdEditor = FxTheme.toolbar(
-                new Label("Selected"),
-                selectedStockField,
-                new Label("Threshold"),
-                thresholdField,
-                updateThreshold
-        );
-        HBox.setHgrow(selectedStockField, Priority.ALWAYS);
+        GridPane thresholdEditor = new GridPane();
+        thresholdEditor.setHgap(8);
+        thresholdEditor.setVgap(8);
+        thresholdEditor.add(new Label("Selected"), 0, 0);
+        thresholdEditor.add(selectedStockField, 0, 1);
+        thresholdEditor.add(new Label("Threshold"), 0, 2);
+        thresholdEditor.add(thresholdField, 0, 3);
+        thresholdEditor.add(updateThreshold, 0, 4);
 
         FxTheme.styleTable(table);
         table.getSelectionModel().selectedItemProperty().addListener((obs, oldRow, row) -> fillThresholdEditor(row));
 
-        BorderPane content = new BorderPane();
-        FxTheme.styleWorkbench(content);
-        VBox controlStack = new VBox(8, filters, thresholdEditor);
-        controlStack.getStyleClass().add("inventory-control-stack");
-        VBox tableCard = FxTheme.card("Inventory Ledger", table);
-        FxTheme.styleTableCard(tableCard);
-        content.setTop(controlStack);
-        content.setCenter(tableCard);
-        BorderPane.setMargin(content.getTop(), new javafx.geometry.Insets(0, 0, 12, 0));
-        return content;
+        return FxTheme.ledgerWorkspace(
+                FxTheme.ledgerSurface("Inventory Ledger", filters, table),
+                FxTheme.ledgerInspector("Threshold Inspector", thresholdEditor)
+        );
     }
 
     private void loadFilters() {

@@ -52,7 +52,7 @@ public class SuppliersFxPage extends VBox {
     public SuppliersFxPage() {
         FxTheme.styleComboBox(linkSupplierComboBox);
         FxTheme.styleComboBox(productComboBox);
-        getChildren().add(FxTheme.page("Suppliers", "Manage suppliers and the products they provide.", createContent()));
+        getChildren().add(FxTheme.ledgerPage("Suppliers", "Supplier records and supplier-product supply prices.", createContent()));
         loadAll();
     }
 
@@ -61,21 +61,12 @@ public class SuppliersFxPage extends VBox {
         configureTables();
 
         BorderPane content = new BorderPane();
-        FxTheme.styleWorkbench(content);
-        content.setTop(createToolbar());
-
-        VBox supplierFormCard = FxTheme.card("Supplier Form", createSupplierForm());
-        VBox supplierTableCard = FxTheme.card("Supplier Ledger", supplierTable);
-        FxTheme.styleFormCard(supplierFormCard);
-        FxTheme.styleTableCard(supplierTableCard);
-
-        HBox body = new HBox(16, supplierFormCard, supplierTableCard);
-        HBox.setHgrow(body.getChildren().get(1), Priority.ALWAYS);
-
-        content.setCenter(body);
-        VBox linkCard = FxTheme.card("Supplier Product Ledger", createLinkPane());
-        linkCard.getStyleClass().add("workbench-detail-card");
-        content.setBottom(linkCard);
+        content.getStyleClass().add("ledger-stacked-workspace");
+        content.setCenter(FxTheme.ledgerWorkspace(
+                FxTheme.ledgerSurface("Supplier Ledger", createToolbar(), supplierTable),
+                FxTheme.ledgerInspector("Supplier Inspector", createSupplierForm())
+        ));
+        content.setBottom(createLinkPane());
         BorderPane.setMargin(content.getBottom(), new javafx.geometry.Insets(16, 0, 0, 0));
         return content;
     }
@@ -86,7 +77,7 @@ public class SuppliersFxPage extends VBox {
         searchButton.setOnAction(e -> searchSuppliers());
         refreshButton.setOnAction(e -> loadAll());
 
-        HBox toolbar = FxTheme.toolbar(searchField, searchButton, refreshButton);
+        HBox toolbar = FxTheme.ledgerCommandBar(searchField, searchButton, refreshButton);
         HBox.setHgrow(searchField, Priority.ALWAYS);
         return toolbar;
     }
@@ -135,18 +126,13 @@ public class SuppliersFxPage extends VBox {
         remove.setOnAction(e -> removeSupplierProduct());
         form.add(FxTheme.actionRow(link, update, remove), 0, 3, 2, 1);
 
-        BorderPane pane = new BorderPane();
-        HBox toolbar = FxTheme.toolbar(linkSearchField);
+        HBox toolbar = FxTheme.ledgerCommandBar(linkSearchField);
         HBox.setHgrow(linkSearchField, Priority.ALWAYS);
 
-        VBox tableBox = new VBox(10, toolbar, linkTable);
+        VBox tableBox = FxTheme.ledgerSurface("Supplier Product Ledger", toolbar, linkTable);
         VBox.setVgrow(linkTable, Priority.ALWAYS);
-        tableBox.getStyleClass().add("workbench-detail-table");
 
-        pane.setLeft(form);
-        pane.setCenter(tableBox);
-        BorderPane.setMargin(form, new javafx.geometry.Insets(0, 16, 0, 0));
-        return pane;
+        return FxTheme.ledgerWorkspace(tableBox, FxTheme.ledgerInspector("Supply Link Inspector", form));
     }
 
     private void addRow(GridPane form, int row, String label, javafx.scene.Node field) {

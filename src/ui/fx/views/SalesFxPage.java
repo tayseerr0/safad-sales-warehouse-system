@@ -69,7 +69,7 @@ public class SalesFxPage extends VBox {
 
     public SalesFxPage() {
         styleSelectors();
-        getChildren().add(FxTheme.page("Sales", "Create, review, update, and delete sales invoices.", createContent()));
+        getChildren().add(FxTheme.ledgerPage("Sales", "Sales invoice ledger with active invoice inspector.", createContent()));
         loadData();
     }
 
@@ -84,7 +84,7 @@ public class SalesFxPage extends VBox {
         paymentTypeComboBox.getStyleClass().add("compact-selector");
     }
 
-    private SplitPane createContent() {
+    private BorderPane createContent() {
         availableStockField.setEditable(false);
         paymentTypeComboBox.setItems(FXCollections.observableArrayList("Cash", "Card", "Bank Transfer", "Cheque"));
         paymentTypeComboBox.getSelectionModel().selectFirst();
@@ -95,31 +95,26 @@ public class SalesFxPage extends VBox {
         productComboBox.setOnAction(e -> updateProductInfo());
         warehouseComboBox.setOnAction(e -> updateProductInfo());
 
-        VBox detailsCard = FxTheme.card("Invoice Details", createInvoiceForm());
-        VBox itemsCard = FxTheme.card(new VBox(8, itemCardTitle, createItemForm()));
-        detailsCard.getStyleClass().add("workflow-form-card");
-        itemsCard.getStyleClass().add("workflow-form-card");
-        HBox entryRow = new HBox(10, detailsCard, itemsCard);
-        entryRow.getStyleClass().add("workflow-entry-row");
-        HBox.setHgrow(detailsCard, Priority.ALWAYS);
-        HBox.setHgrow(itemsCard, Priority.ALWAYS);
+        itemTable.setPrefHeight(150);
 
-        itemTable.setPrefHeight(180);
-
-        VBox currentItemsCard = FxTheme.card("Current Items", itemTable);
-        currentItemsCard.getStyleClass().add("workflow-table-card");
-
-        VBox editor = new VBox(10,
-                entryRow,
-                currentItemsCard,
+        VBox editor = new VBox(9,
+                sectionLabel("Invoice"),
+                createInvoiceForm(),
+                sectionLabel("Line Item"),
+                createItemForm(),
+                sectionLabel("Current Items"),
+                itemTable,
                 createSaveButtons()
         );
         editor.getStyleClass().add("workflow-editor");
 
-        SplitPane splitPane = new SplitPane(editor, createHistoryPane());
-        splitPane.getStyleClass().add("workflow-split");
-        splitPane.setDividerPositions(0.48);
-        return splitPane;
+        return FxTheme.ledgerWorkspace(createHistoryPane(), FxTheme.ledgerInspector("Sales Inspector", editor));
+    }
+
+    private Label sectionLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("ledger-section-label");
+        return label;
     }
 
     private GridPane createInvoiceForm() {
@@ -176,7 +171,7 @@ public class SalesFxPage extends VBox {
         HBox toolbar = FxTheme.toolbar(invoiceSearchField);
         HBox.setHgrow(invoiceSearchField, Priority.ALWAYS);
 
-        VBox top = new VBox(10, toolbar, invoiceTable);
+        VBox top = new VBox(10, invoiceTable);
         VBox bottom = new VBox(10,
                 FxTheme.toolbar(new Label("Selected Invoice Items")),
                 previousItemsTable
@@ -186,9 +181,7 @@ public class SalesFxPage extends VBox {
         split.setOrientation(javafx.geometry.Orientation.VERTICAL);
         split.setDividerPositions(0.58);
 
-        VBox historyCard = FxTheme.card("Sales Invoice Ledger", split);
-        historyCard.getStyleClass().add("workflow-history-card");
-        pane.setCenter(historyCard);
+        pane.setCenter(FxTheme.ledgerSurface("Sales Invoice Ledger", toolbar, split));
         return pane;
     }
 

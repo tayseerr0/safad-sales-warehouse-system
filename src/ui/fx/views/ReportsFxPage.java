@@ -70,7 +70,7 @@ public class ReportsFxPage extends VBox {
     private DefaultTableModel currentAnalysisModel;
 
     public ReportsFxPage() {
-        getChildren().add(FxTheme.page("Reports", "Analytical sales, purchase, and mixed business reports.", createContent()));
+        getChildren().add(FxTheme.ledgerPage("Reports", "Sales, purchase, and analysis report ledgers.", createContent()));
     }
 
     private TabPane createContent() {
@@ -110,7 +110,7 @@ public class ReportsFxPage extends VBox {
         run.setOnAction(e -> runSalesReport());
         clear.setOnAction(e -> clearSalesReport());
 
-        HBox filters = FxTheme.toolbar(salesReportComboBox, salesStartDatePicker, salesEndDatePicker, salesYearField, run, clear);
+        HBox filters = FxTheme.ledgerCommandBar(salesReportComboBox, salesStartDatePicker, salesEndDatePicker, salesYearField, run, clear);
         filters.getStyleClass().add("report-filter-bar");
         filters.getStyleClass().add("report-ledger-filters");
         salesReportComboBox.setOnAction(e -> updateSalesFilters());
@@ -122,10 +122,9 @@ public class ReportsFxPage extends VBox {
         salesChartPane = new BorderPane();
         salesChartPane.setCenter(FxChartUtil.barChart("Sales Chart", Map.of("No data", 0)));
 
-        salesChartCard = FxTheme.card("Sales Chart", salesChartPane);
+        salesChartCard = FxTheme.ledgerSurface("Sales Chart", FxTheme.ledgerCommandBar(new Label("Muted report chart")), salesChartPane);
         salesChartCard.getStyleClass().add("report-chart-card");
-        VBox salesResultsCard = FxTheme.card("Sales Results", new VBox(10,
-                FxTheme.toolbar(salesSearchField),
+        VBox salesResultsCard = FxTheme.ledgerSurface("Sales Results", FxTheme.ledgerCommandBar(salesSearchField), new VBox(6,
                 salesSummaryLabel,
                 salesTable
         ));
@@ -177,7 +176,7 @@ public class ReportsFxPage extends VBox {
         refresh.setOnAction(e -> loadPurchaseFilters());
         clear.setOnAction(e -> clearPurchaseReport());
 
-        HBox filters = FxTheme.toolbar(purchaseReportComboBox, supplierComboBox, productComboBox,
+        HBox filters = FxTheme.ledgerCommandBar(purchaseReportComboBox, supplierComboBox, productComboBox,
                 purchaseStartDatePicker, purchaseEndDatePicker, refresh, run, clear);
         filters.getStyleClass().add("report-filter-bar");
         filters.getStyleClass().add("report-ledger-filters");
@@ -190,10 +189,9 @@ public class ReportsFxPage extends VBox {
         purchaseChartPane = new BorderPane();
         purchaseChartPane.setCenter(FxChartUtil.barChart("Purchase Chart", Map.of("No data", 0)));
 
-        purchaseChartCard = FxTheme.card("Report Chart", purchaseChartPane);
+        purchaseChartCard = FxTheme.ledgerSurface("Report Chart", FxTheme.ledgerCommandBar(new Label("Muted report chart")), purchaseChartPane);
         purchaseChartCard.getStyleClass().add("report-chart-card");
-        VBox purchaseResultsCard = FxTheme.card("Purchase Results", new VBox(10,
-                FxTheme.toolbar(purchaseSearchField),
+        VBox purchaseResultsCard = FxTheme.ledgerSurface("Purchase Results", FxTheme.ledgerCommandBar(purchaseSearchField), new VBox(6,
                 purchaseSummaryLabel,
                 purchaseTable
         ));
@@ -230,7 +228,7 @@ public class ReportsFxPage extends VBox {
         run.setOnAction(e -> runAnalysisReport());
         clear.setOnAction(e -> clearAnalysisReport());
 
-        HBox filters = FxTheme.toolbar(analysisReportComboBox, run, clear);
+        HBox filters = FxTheme.ledgerCommandBar(analysisReportComboBox, run, clear);
         filters.getStyleClass().add("report-filter-bar");
         filters.getStyleClass().add("report-ledger-filters");
         analysisReportComboBox.setOnAction(e -> updateAnalysisChartVisibility());
@@ -241,10 +239,9 @@ public class ReportsFxPage extends VBox {
         analysisChartPane = new BorderPane();
         analysisChartPane.setCenter(FxChartUtil.barChart("Analysis Chart", Map.of("No data", 0)));
 
-        analysisChartCard = FxTheme.card("Analysis Chart", analysisChartPane);
+        analysisChartCard = FxTheme.ledgerSurface("Analysis Chart", FxTheme.ledgerCommandBar(new Label("Muted report chart")), analysisChartPane);
         analysisChartCard.getStyleClass().add("report-chart-card");
-        VBox analysisResultsCard = FxTheme.card("Analysis Results", new VBox(10,
-                FxTheme.toolbar(analysisSearchField),
+        VBox analysisResultsCard = FxTheme.ledgerSurface("Analysis Results", FxTheme.ledgerCommandBar(analysisSearchField), new VBox(6,
                 analysisSummaryLabel,
                 analysisTable
         ));
