@@ -6,6 +6,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Comparator;
 import java.util.function.Function;
 import java.util.prefs.Preferences;
 
@@ -42,6 +44,7 @@ public class FxTableUtil {
         column.setCellValueFactory(data -> new ReadOnlyObjectWrapper<>(valueFactory.apply(data.getValue())));
         column.setPrefWidth(width);
         column.setMinWidth(Math.min(90, width));
+        configureSortableColumn(column);
         return column;
     }
 
@@ -61,6 +64,7 @@ public class FxTableUtil {
             column.setCellValueFactory(data -> new ReadOnlyObjectWrapper<>(data.getValue().get(columnName)));
             column.setPrefWidth(Math.max(120, columnName.length() * 12));
             column.setMinWidth(90);
+            configureSortableColumn(column);
             table.getColumns().add(column);
         }
 
@@ -76,7 +80,9 @@ public class FxTableUtil {
             rows.add(rowMap);
         }
 
-        table.setItems(rows);
+        SortedList<Map<String, Object>> sorted = new SortedList<>(rows);
+        sorted.comparatorProperty().bind(table.comparatorProperty());
+        table.setItems(sorted);
         bindColumnMode(table);
         applyColumnMode(table, getColumnMode());
         return rows;
@@ -86,13 +92,43 @@ public class FxTableUtil {
                                                     ObservableList<T> source,
                                                     TextField searchField) {
         FilteredList<T> filtered = new FilteredList<>(source, row -> true);
-        table.setItems(filtered);
+        SortedList<T> sorted = new SortedList<>(filtered);
+        sorted.comparatorProperty().bind(table.comparatorProperty());
+        table.setItems(sorted);
 
         searchField.textProperty().addListener((obs, oldText, newText) ->
                 filtered.setPredicate(row -> rowMatches(table, row, newText))
         );
 
         return filtered;
+    }
+
+    private static <T> void configureSortableColumn(TableColumn<T, Object> column) {
+        column.setSortable(true);
+        column.setComparator(FxTableUtil::compareValues);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static int compareValues(Object left, Object right) {
+        if (left == right) {
+            return 0;
+        }
+        if (left == null) {
+            return -1;
+        }
+        if (right == null) {
+            return 1;
+        }
+        if (left instanceof Number leftNumber && right instanceof Number rightNumber) {
+            return Double.compare(leftNumber.doubleValue(), rightNumber.doubleValue());
+        }
+        if (left instanceof String || right instanceof String) {
+            return String.CASE_INSENSITIVE_ORDER.compare(left.toString(), right.toString());
+        }
+        if (left instanceof Comparable comparable && left.getClass().isInstance(right)) {
+            return comparable.compareTo(right);
+        }
+        return Comparator.comparing(Object::toString, String.CASE_INSENSITIVE_ORDER).compare(left, right);
     }
 
     public static ComboBox<ColumnMode> globalColumnModeBox() {

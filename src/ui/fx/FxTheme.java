@@ -12,7 +12,8 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -165,12 +166,25 @@ public class FxTheme {
         return box;
     }
 
-    public static FlowPane actionRow(Button... buttons) {
-        FlowPane row = new FlowPane(8, 8);
+    public static GridPane actionRow(Button... buttons) {
+        GridPane row = new GridPane();
+        row.setHgap(8);
+        row.setVgap(8);
         row.setAlignment(Pos.CENTER_RIGHT);
-        row.getChildren().addAll(buttons);
-        for (Button button : buttons) {
-            button.setMaxWidth(Region.USE_PREF_SIZE);
+
+        ColumnConstraints first = new ColumnConstraints();
+        first.setPercentWidth(50);
+        first.setHgrow(Priority.ALWAYS);
+        ColumnConstraints second = new ColumnConstraints();
+        second.setPercentWidth(50);
+        second.setHgrow(Priority.ALWAYS);
+        row.getColumnConstraints().addAll(first, second);
+
+        for (int i = 0; i < buttons.length; i++) {
+            Button button = buttons[i];
+            button.setMaxWidth(Double.MAX_VALUE);
+            GridPane.setHgrow(button, Priority.ALWAYS);
+            row.add(button, i % 2, i / 2);
         }
         return row;
     }
