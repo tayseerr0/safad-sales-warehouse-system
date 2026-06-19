@@ -278,6 +278,7 @@ public class SalesFxPage extends VBox {
         invoiceTable.getColumns().add(FxTableUtil.column("Payment Type", SalesInvoice::getPaymentType, 120));
         invoiceTable.getColumns().add(FxTableUtil.column("Payment", SalesInvoice::getPayment, 100));
         invoiceTable.getColumns().add(FxTableUtil.column("Amount", SalesInvoice::getAmount, 110));
+        invoiceTable.getColumns().add(FxTableUtil.column("Status", this::paymentStatus, 100));
         FxTableUtil.installSearch(invoiceTable, invoices, invoiceSearchField);
         FxTheme.styleTable(invoiceTable);
         invoiceTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, invoice) -> {
