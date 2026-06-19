@@ -127,7 +127,7 @@ public class ReportsFxPage extends VBox {
 
         salesChartCard = FxTheme.ledgerSurface("Sales Chart", FxTheme.ledgerCommandBar(new Label("Muted report chart")), salesChartPane);
         salesChartCard.getStyleClass().add("report-chart-card");
-        VBox salesResultsCard = FxTheme.ledgerSurface("Sales Results", FxTheme.ledgerCommandBar(salesSearchField), new VBox(6,
+        VBox salesResultsCard = FxTheme.ledgerSurface("Sales Results", createSalesSearchToolbar(), new VBox(6,
                 salesSummaryLabel,
                 salesTable
         ));
@@ -173,7 +173,7 @@ public class ReportsFxPage extends VBox {
         loadPurchaseFilters();
 
         Button run = FxTheme.primaryButton("Run Report");
-        Button refresh = FxTheme.secondaryButton("Refresh Lists");
+        Button refresh = FxTheme.refreshButton();
         Button clear = FxTheme.secondaryButton("Clear");
         run.setOnAction(e -> runPurchaseReport());
         refresh.setOnAction(e -> loadPurchaseFilters());
@@ -194,7 +194,7 @@ public class ReportsFxPage extends VBox {
 
         purchaseChartCard = FxTheme.ledgerSurface("Report Chart", FxTheme.ledgerCommandBar(new Label("Muted report chart")), purchaseChartPane);
         purchaseChartCard.getStyleClass().add("report-chart-card");
-        VBox purchaseResultsCard = FxTheme.ledgerSurface("Purchase Results", FxTheme.ledgerCommandBar(purchaseSearchField), new VBox(6,
+        VBox purchaseResultsCard = FxTheme.ledgerSurface("Purchase Results", createPurchaseSearchToolbar(), new VBox(6,
                 purchaseSummaryLabel,
                 purchaseTable
         ));
@@ -246,7 +246,7 @@ public class ReportsFxPage extends VBox {
 
         analysisChartCard = FxTheme.ledgerSurface("Analysis Chart", FxTheme.ledgerCommandBar(new Label("Muted report chart")), analysisChartPane);
         analysisChartCard.getStyleClass().add("report-chart-card");
-        VBox analysisResultsCard = FxTheme.ledgerSurface("Analysis Results", FxTheme.ledgerCommandBar(analysisSearchField), new VBox(6,
+        VBox analysisResultsCard = FxTheme.ledgerSurface("Analysis Results", createAnalysisSearchToolbar(), new VBox(6,
                 analysisSummaryLabel,
                 analysisTable
         ));
@@ -276,6 +276,39 @@ public class ReportsFxPage extends VBox {
         setVisible(salesEndDatePicker, dates);
         setVisible(salesYearField, year);
         updateSalesChartVisibility();
+    }
+
+    private HBox createSalesSearchToolbar() {
+        Button refresh = FxTheme.refreshButton();
+        refresh.setOnAction(e -> {
+            salesSearchField.clear();
+            applySalesSearch();
+        });
+        HBox toolbar = FxTheme.ledgerCommandBar(salesSearchField, refresh);
+        HBox.setHgrow(salesSearchField, Priority.ALWAYS);
+        return toolbar;
+    }
+
+    private HBox createPurchaseSearchToolbar() {
+        Button refresh = FxTheme.refreshButton();
+        refresh.setOnAction(e -> {
+            purchaseSearchField.clear();
+            applyPurchaseSearch();
+        });
+        HBox toolbar = FxTheme.ledgerCommandBar(purchaseSearchField, refresh);
+        HBox.setHgrow(purchaseSearchField, Priority.ALWAYS);
+        return toolbar;
+    }
+
+    private HBox createAnalysisSearchToolbar() {
+        Button refresh = FxTheme.refreshButton();
+        refresh.setOnAction(e -> {
+            analysisSearchField.clear();
+            applyAnalysisSearch();
+        });
+        HBox toolbar = FxTheme.ledgerCommandBar(analysisSearchField, refresh);
+        HBox.setHgrow(analysisSearchField, Priority.ALWAYS);
+        return toolbar;
     }
 
     private void updatePurchaseFilters() {
@@ -347,8 +380,7 @@ public class ReportsFxPage extends VBox {
     }
 
     private void setVisible(Node node, boolean visible) {
-        node.setVisible(visible);
-        node.setManaged(visible);
+        FxTheme.setVisible(node, visible);
     }
 
     private void loadPurchaseFilters() {

@@ -52,6 +52,10 @@ public class SuppliersFxPage extends VBox {
     private final TextField supplyPriceField = FxTheme.textField("Supply price");
     private final TextField linkSearchField = FxTheme.textField("Search supplier-product links");
     private final TableView<SupplierProduct> linkTable = new TableView<>();
+    private Button supplierActionButton;
+    private Button supplierDeleteButton;
+    private Button linkActionButton;
+    private Button linkRemoveButton;
 
     public SuppliersFxPage() {
         FxTheme.styleComboBox(linkSupplierComboBox);
@@ -81,12 +85,13 @@ public class SuppliersFxPage extends VBox {
     }
 
     private HBox createToolbar() {
-        Button searchButton = FxTheme.secondaryButton("Search");
-        Button refreshButton = FxTheme.secondaryButton("Refresh");
-        searchButton.setOnAction(e -> searchSuppliers());
-        refreshButton.setOnAction(e -> loadAll());
+        Button refreshButton = FxTheme.refreshButton();
+        refreshButton.setOnAction(e -> {
+            searchField.clear();
+            loadAll();
+        });
 
-        HBox toolbar = FxTheme.ledgerCommandBar(searchField, searchButton, refreshButton);
+        HBox toolbar = FxTheme.ledgerCommandBar(searchField, refreshButton);
         HBox.setHgrow(searchField, Priority.ALWAYS);
         return toolbar;
     }
@@ -103,19 +108,17 @@ public class SuppliersFxPage extends VBox {
         addRow(form, 6, "Country", countryField);
         addRow(form, 7, "Address", addressField);
 
-        Button add = FxTheme.primaryButton("Add");
-        Button update = FxTheme.primaryButton("Update");
-        Button delete = FxTheme.dangerButton("Delete");
+        supplierActionButton = FxTheme.primaryButton("Add");
+        supplierDeleteButton = FxTheme.dangerButton("Delete");
         Button clear = FxTheme.secondaryButton("Clear");
-        add.setMinWidth(78);
-        update.setMinWidth(78);
-        delete.setMinWidth(78);
+        supplierActionButton.setMinWidth(78);
+        supplierDeleteButton.setMinWidth(78);
         clear.setMinWidth(78);
-        add.setOnAction(e -> addSupplier());
-        update.setOnAction(e -> updateSupplier());
-        delete.setOnAction(e -> deleteSupplier());
+        supplierActionButton.setOnAction(e -> saveSupplier());
+        supplierDeleteButton.setOnAction(e -> deleteSupplier());
         clear.setOnAction(e -> clearSupplierForm());
-        form.add(FxTheme.actionRow(add, update, delete, clear), 0, 8, 2, 1);
+        FxTheme.setVisible(supplierDeleteButton, false);
+        form.add(FxTheme.compactActionRow(supplierActionButton, supplierDeleteButton, clear), 0, 8, 2, 1);
         return form;
     }
 
@@ -126,15 +129,21 @@ public class SuppliersFxPage extends VBox {
         addRow(form, 1, "Product", productComboBox);
         addRow(form, 2, "Supply Price", supplyPriceField);
 
-        Button link = FxTheme.primaryButton("Link");
-        Button update = FxTheme.primaryButton("Update Price");
-        Button remove = FxTheme.dangerButton("Remove");
-        link.setOnAction(e -> linkSupplierProduct());
-        update.setOnAction(e -> updateSupplyPrice());
-        remove.setOnAction(e -> removeSupplierProduct());
-        form.add(FxTheme.actionRow(link, update, remove), 0, 3, 2, 1);
+        linkActionButton = FxTheme.primaryButton("Link");
+        linkRemoveButton = FxTheme.dangerButton("Remove");
+        Button clear = FxTheme.secondaryButton("Clear");
+        linkActionButton.setOnAction(e -> saveSupplierProductLink());
+        linkRemoveButton.setOnAction(e -> removeSupplierProduct());
+        clear.setOnAction(e -> clearLinkForm());
+        FxTheme.setVisible(linkRemoveButton, false);
+        form.add(FxTheme.compactActionRow(linkActionButton, linkRemoveButton, clear), 0, 3, 2, 1);
 
-        HBox toolbar = FxTheme.ledgerCommandBar(linkSearchField);
+        Button refresh = FxTheme.refreshButton();
+        refresh.setOnAction(e -> {
+            linkSearchField.clear();
+            loadAll();
+        });
+        HBox toolbar = FxTheme.ledgerCommandBar(linkSearchField, refresh);
         HBox.setHgrow(linkSearchField, Priority.ALWAYS);
 
         VBox tableBox = FxTheme.ledgerSurface("Supplier Product Ledger", toolbar, linkTable);
@@ -206,11 +215,8 @@ public class SuppliersFxPage extends VBox {
         productComboBox.setItems(FXCollections.observableArrayList(productDAO.getAllProducts()));
         if (!linkSupplierComboBox.getItems().isEmpty()) linkSupplierComboBox.getSelectionModel().selectFirst();
         if (!productComboBox.getItems().isEmpty()) productComboBox.getSelectionModel().selectFirst();
-    }
-
-    private void searchSuppliers() {
-        String keyword = searchField.getText().trim();
-        suppliers.setAll(keyword.isEmpty() ? supplierDAO.getAllSuppliers() : supplierDAO.searchSuppliers(keyword));
+        updateSupplierFormMode();
+        updateLinkFormMode();
     }
 
     private void addSupplier() {
@@ -219,6 +225,14 @@ public class SuppliersFxPage extends VBox {
             FxTheme.showInfo("Supplier added.");
             clearSupplierForm();
             loadAll();
+        }
+    }
+
+    private void saveSupplier() {
+        if (idField.getText().isBlank()) {
+            addSupplier();
+        } else {
+            updateSupplier();
         }
     }
 
@@ -264,7 +278,12 @@ public class SuppliersFxPage extends VBox {
         Product product = productComboBox.getValue();
         BigDecimal price = readPrice();
         if (supplier != null && product != null && price != null) {
+            if (supplierProductDAO.supplierProductExists(supplier.getSupplierId(), product.getProductId())) {
+                FxTheme.showWarning("This supplier is already linked to the selected product. Select the existing link to update its price.");
+                return;
+            }
             supplierProductDAO.linkSupplierToProduct(supplier.getSupplierId(), product.getProductId(), price);
+            clearLinkForm();
             loadAll();
         }
     }
@@ -275,7 +294,16 @@ public class SuppliersFxPage extends VBox {
         BigDecimal price = readPrice();
         if (supplier != null && product != null && price != null) {
             supplierProductDAO.updateSupplyPrice(supplier.getSupplierId(), product.getProductId(), price);
+            clearLinkForm();
             loadAll();
+        }
+    }
+
+    private void saveSupplierProductLink() {
+        if (linkTable.getSelectionModel().getSelectedItem() == null) {
+            linkSupplierProduct();
+        } else {
+            updateSupplyPrice();
         }
     }
 
@@ -284,6 +312,7 @@ public class SuppliersFxPage extends VBox {
         Product product = productComboBox.getValue();
         if (supplier != null && product != null && FxTheme.confirm("Remove supplier-product link?")) {
             supplierProductDAO.removeSupplierProduct(supplier.getSupplierId(), product.getProductId());
+            clearLinkForm();
             loadAll();
         }
     }
@@ -306,12 +335,14 @@ public class SuppliersFxPage extends VBox {
         cityField.setText(supplier.getCity());
         countryField.setText(supplier.getCountry());
         addressField.setText(supplier.getAddress());
+        updateSupplierFormMode();
     }
 
     private void fillLinkForm(SupplierProduct link) {
         selectSupplier(link.getSupplierId());
         selectProduct(link.getProductId());
         supplyPriceField.setText(String.valueOf(link.getSupplyPrice()));
+        updateLinkFormMode();
     }
 
     private void selectSupplier(int supplierId) {
@@ -338,5 +369,34 @@ public class SuppliersFxPage extends VBox {
         countryField.clear();
         addressField.clear();
         supplierTable.getSelectionModel().clearSelection();
+        updateSupplierFormMode();
+    }
+
+    private void clearLinkForm() {
+        supplyPriceField.clear();
+        if (!linkSupplierComboBox.getItems().isEmpty()) linkSupplierComboBox.getSelectionModel().selectFirst();
+        if (!productComboBox.getItems().isEmpty()) productComboBox.getSelectionModel().selectFirst();
+        linkTable.getSelectionModel().clearSelection();
+        updateLinkFormMode();
+    }
+
+    private void updateSupplierFormMode() {
+        boolean selected = !idField.getText().isBlank();
+        if (supplierActionButton != null) {
+            supplierActionButton.setText(selected ? "Update" : "Add");
+        }
+        if (supplierDeleteButton != null) {
+            FxTheme.setVisible(supplierDeleteButton, selected);
+        }
+    }
+
+    private void updateLinkFormMode() {
+        boolean selected = linkTable.getSelectionModel().getSelectedItem() != null;
+        if (linkActionButton != null) {
+            linkActionButton.setText(selected ? "Update Price" : "Link");
+        }
+        if (linkRemoveButton != null) {
+            FxTheme.setVisible(linkRemoveButton, selected);
+        }
     }
 }

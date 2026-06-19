@@ -12,6 +12,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -46,7 +47,6 @@ public class PurchasesFxPage extends VBox {
 
     private final ObservableList<PurchaseInvoiceItem> currentItems = FXCollections.observableArrayList();
     private final ObservableList<PurchaseInvoice> invoices = FXCollections.observableArrayList();
-    private final ObservableList<PurchaseInvoiceItem> selectedInvoiceItems = FXCollections.observableArrayList();
 
     private final ComboBox<Supplier> supplierComboBox = new ComboBox<>();
     private final ComboBox<Warehouse> warehouseComboBox = new ComboBox<>();
@@ -63,9 +63,10 @@ public class PurchasesFxPage extends VBox {
     private final Label priceHintLabel = new Label(" ");
     private Button itemActionButton;
     private Button itemRemoveButton;
+    private Button invoiceActionButton;
+    private Button invoiceDeleteButton;
     private final TableView<PurchaseInvoiceItem> itemTable = new TableView<>();
     private final TableView<PurchaseInvoice> invoiceTable = new TableView<>();
-    private final TableView<PurchaseInvoiceItem> previousItemsTable = new TableView<>();
 
     private int editingInvoiceId = -1;
     private PurchaseInvoiceItem editingItem;
@@ -102,8 +103,6 @@ public class PurchasesFxPage extends VBox {
         supplierComboBox.setOnAction(e -> updateDefaultPurchasePrice());
         productComboBox.setOnAction(e -> updateDefaultPurchasePrice());
 
-        itemTable.setMinHeight(118);
-        itemTable.setPrefHeight(125);
         itemTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         VBox editor = new VBox(6,
@@ -111,13 +110,19 @@ public class PurchasesFxPage extends VBox {
                 createInvoiceForm(),
                 createSaveButtons(),
                 sectionLabel("Line Item"),
-                createItemForm(),
-                sectionLabel("Current Items"),
-                itemTable
+                createItemForm()
         );
         editor.getStyleClass().add("workflow-editor");
 
-        return FxTheme.ledgerWorkspace(createHistoryPane(), FxTheme.ledgerInspector("Purchase Inspector", editor));
+        return FxTheme.ledgerWorkspace(createHistoryPane(), FxTheme.ledgerInspector("Purchase Inspector", scrollEditor(editor)));
+    }
+
+    private ScrollPane scrollEditor(VBox editor) {
+        ScrollPane scroll = new ScrollPane(editor);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.getStyleClass().add("inspector-scroll");
+        return scroll;
     }
 
     private Label sectionLabel(String text) {
@@ -128,8 +133,7 @@ public class PurchasesFxPage extends VBox {
 
     private GridPane createInvoiceForm() {
         GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
+        FxTheme.configureInspectorForm(form);
         addRow(form, 0, "Status", modeLabel);
         addRow(form, 1, "Supplier", supplierComboBox);
         addRow(form, 2, "Warehouse", warehouseComboBox);
@@ -142,8 +146,7 @@ public class PurchasesFxPage extends VBox {
 
     private GridPane createItemForm() {
         GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
+        FxTheme.configureInspectorForm(form);
         addRow(form, 0, "Product", productComboBox);
         addRow(form, 1, "Quantity", quantityField);
         addRow(form, 2, "Purchase Price", priceField);
@@ -155,38 +158,44 @@ public class PurchasesFxPage extends VBox {
         itemActionButton.setOnAction(e -> saveCurrentItem());
         itemRemoveButton.setOnAction(e -> removeItem());
         clear.setOnAction(e -> clearItemForm());
-        setVisible(itemRemoveButton, false);
-        form.add(FxTheme.actionRow(itemActionButton, itemRemoveButton, clear), 0, 4, 2, 1);
+        FxTheme.setVisible(itemRemoveButton, false);
+        FxTheme.addInspectorActions(form, 4, itemActionButton, itemRemoveButton, clear);
         return form;
     }
 
     private HBox createSaveButtons() {
-        Button save = FxTheme.primaryButton("Save");
-        Button update = FxTheme.primaryButton("Update");
-        Button delete = FxTheme.dangerButton("Delete");
-        Button clear = FxTheme.secondaryButton("New");
+        invoiceActionButton = FxTheme.primaryButton("Save");
+        invoiceDeleteButton = FxTheme.dangerButton("Delete");
+        Button clear = FxTheme.secondaryButton("Clear");
 
-        save.setOnAction(e -> saveInvoice());
-        update.setOnAction(e -> updateInvoice());
-        delete.setOnAction(e -> deleteInvoice());
+        invoiceActionButton.setOnAction(e -> saveOrUpdateInvoice());
+        invoiceDeleteButton.setOnAction(e -> deleteInvoice());
         clear.setOnAction(e -> clearInvoice());
+        FxTheme.setVisible(invoiceDeleteButton, false);
 
-        return FxTheme.toolbar(clear, delete, update, save);
+        HBox actions = FxTheme.compactActionRow(invoiceActionButton, invoiceDeleteButton, clear);
+        actions.setMaxWidth(Double.MAX_VALUE);
+        return actions;
     }
 
     private BorderPane createHistoryPane() {
         BorderPane pane = new BorderPane();
 
-        HBox toolbar = FxTheme.toolbar(invoiceSearchField);
-        HBox.setHgrow(invoiceSearchField, Priority.ALWAYS);
+        Button refresh = FxTheme.refreshButton();
+        refresh.setOnAction(e -> {
+            invoiceSearchField.clear();
+            loadData();
+        });
+        HBox toolbar = FxTheme.ledgerCommandBar(invoiceSearchField, refresh);
+        FxTheme.stretchToolbarField(invoiceSearchField);
 
         VBox top = new VBox(10, invoiceTable);
         VBox bottom = new VBox(10,
-                FxTheme.toolbar(new Label("Selected Invoice Items")),
-                previousItemsTable
+                FxTheme.ledgerCommandBar(new Label("Selected Invoice Items")),
+                itemTable
         );
         VBox.setVgrow(invoiceTable, Priority.ALWAYS);
-        VBox.setVgrow(previousItemsTable, Priority.ALWAYS);
+        VBox.setVgrow(itemTable, Priority.ALWAYS);
 
         SplitPane split = new SplitPane(top, bottom);
         split.setOrientation(javafx.geometry.Orientation.VERTICAL);
@@ -199,8 +208,7 @@ public class PurchasesFxPage extends VBox {
     }
 
     private void addRow(GridPane form, int row, String label, javafx.scene.Node field) {
-        form.add(new Label(label), 0, row);
-        form.add(field, 1, row);
+        FxTheme.addInspectorRow(form, row, label, field);
     }
 
     private void configureTables() {
@@ -227,7 +235,6 @@ public class PurchasesFxPage extends VBox {
         FxTableUtil.installSearch(invoiceTable, invoices, invoiceSearchField);
         FxTheme.styleTable(invoiceTable);
         invoiceTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, invoice) -> {
-            loadInvoiceItems(invoice);
             if (invoice != null) {
                 loadSelectedInvoiceForEdit();
             }
@@ -236,14 +243,6 @@ public class PurchasesFxPage extends VBox {
             if (e.getClickCount() == 2) loadSelectedInvoiceForEdit();
         });
 
-        previousItemsTable.getColumns().add(FxTableUtil.column("Item ID", PurchaseInvoiceItem::getPurchaseItemId, 80));
-        previousItemsTable.getColumns().add(FxTableUtil.column("Product ID", PurchaseInvoiceItem::getProductId, 90));
-        previousItemsTable.getColumns().add(FxTableUtil.column("Product", PurchaseInvoiceItem::getProductName, 190));
-        previousItemsTable.getColumns().add(FxTableUtil.column("Quantity", PurchaseInvoiceItem::getQuantity, 90));
-        previousItemsTable.getColumns().add(FxTableUtil.column("Price", PurchaseInvoiceItem::getPurchasePrice, 100));
-        previousItemsTable.getColumns().add(FxTableUtil.column("Line Total", item -> item.getPurchasePrice().multiply(BigDecimal.valueOf(item.getQuantity())), 120));
-        previousItemsTable.setItems(selectedInvoiceItems);
-        FxTheme.styleTable(previousItemsTable);
     }
 
     private void loadData() {
@@ -354,6 +353,14 @@ public class PurchasesFxPage extends VBox {
         }
     }
 
+    private void saveOrUpdateInvoice() {
+        if (editingInvoiceId > 0) {
+            updateInvoice();
+        } else {
+            saveInvoice();
+        }
+    }
+
     private void deleteInvoice() {
         PurchaseInvoice selected = invoiceTable.getSelectionModel().getSelectedItem();
         int invoiceId = editingInvoiceId > 0 ? editingInvoiceId : selected == null ? -1 : selected.getPurchaseInvoiceId();
@@ -369,7 +376,6 @@ public class PurchasesFxPage extends VBox {
             FxTheme.showInfo("Purchase invoice deleted.");
             clearInvoice();
             loadData();
-            selectedInvoiceItems.clear();
         } else {
             FxTheme.showError("Failed to delete purchase invoice.");
         }
@@ -441,13 +447,6 @@ public class PurchasesFxPage extends VBox {
         return total;
     }
 
-    private void loadInvoiceItems(PurchaseInvoice invoice) {
-        selectedInvoiceItems.clear();
-        if (invoice != null) {
-            selectedInvoiceItems.setAll(purchaseInvoiceDAO.getPurchaseInvoiceItems(invoice.getPurchaseInvoiceId()));
-        }
-    }
-
     private void loadSelectedInvoiceForEdit() {
         PurchaseInvoice selected = invoiceTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
@@ -472,6 +471,7 @@ public class PurchasesFxPage extends VBox {
         currentItems.setAll(invoice.getItems());
         clearItemForm();
         updatePaymentToTotal();
+        updateInvoiceEditMode();
     }
 
     private void updateDefaultPurchasePrice() {
@@ -547,7 +547,9 @@ public class PurchasesFxPage extends VBox {
         paymentTypeComboBox.getSelectionModel().selectFirst();
         currentItems.clear();
         clearItemForm();
+        invoiceTable.getSelectionModel().clearSelection();
         updateDefaultPurchasePrice();
+        updateInvoiceEditMode();
     }
 
     private void fillItemForm(PurchaseInvoiceItem item) {
@@ -572,13 +574,18 @@ public class PurchasesFxPage extends VBox {
             itemActionButton.setText(editingItem == null ? "Add" : "Update");
         }
         if (itemRemoveButton != null) {
-            setVisible(itemRemoveButton, editingItem != null);
+            FxTheme.setVisible(itemRemoveButton, editingItem != null);
         }
     }
 
-    private void setVisible(javafx.scene.Node node, boolean visible) {
-        node.setVisible(visible);
-        node.setManaged(visible);
+    private void updateInvoiceEditMode() {
+        boolean editing = editingInvoiceId > 0;
+        if (invoiceActionButton != null) {
+            invoiceActionButton.setText(editing ? "Update" : "Save");
+        }
+        if (invoiceDeleteButton != null) {
+            FxTheme.setVisible(invoiceDeleteButton, editing);
+        }
     }
 
     private void selectProduct(int productId) {

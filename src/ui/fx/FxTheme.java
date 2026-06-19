@@ -9,6 +9,7 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
@@ -184,9 +185,83 @@ public class FxTheme {
             Button button = buttons[i];
             button.setMaxWidth(Double.MAX_VALUE);
             GridPane.setHgrow(button, Priority.ALWAYS);
+            button.managedProperty().addListener((obs, oldValue, newValue) -> relayoutActionButtons(row, buttons));
             row.add(button, i % 2, i / 2);
         }
+        relayoutActionButtons(row, buttons);
         return row;
+    }
+
+    private static void relayoutActionButtons(GridPane row, Button... buttons) {
+        int visibleIndex = 0;
+        for (Button button : buttons) {
+            if (!button.isManaged()) {
+                continue;
+            }
+
+            GridPane.setColumnIndex(button, visibleIndex % 2);
+            GridPane.setRowIndex(button, visibleIndex / 2);
+            visibleIndex++;
+        }
+    }
+
+    public static HBox compactActionRow(Button... buttons) {
+        HBox row = new HBox(6);
+        row.setAlignment(Pos.CENTER_RIGHT);
+
+        for (Button button : buttons) {
+            button.setMinWidth(58);
+            button.setPrefWidth(76);
+            button.setMaxWidth(Double.MAX_VALUE);
+            HBox.setHgrow(button, Priority.ALWAYS);
+            row.getChildren().add(button);
+        }
+
+        return row;
+    }
+
+    public static void configureInspectorForm(GridPane form) {
+        form.setHgap(8);
+        form.setVgap(8);
+        form.setMaxWidth(Double.MAX_VALUE);
+
+        ColumnConstraints labelColumn = new ColumnConstraints();
+        labelColumn.setMinWidth(92);
+        labelColumn.setPrefWidth(98);
+        labelColumn.setHgrow(Priority.NEVER);
+
+        ColumnConstraints fieldColumn = new ColumnConstraints();
+        fieldColumn.setMinWidth(0);
+        fieldColumn.setHgrow(Priority.ALWAYS);
+        fieldColumn.setFillWidth(true);
+
+        form.getColumnConstraints().setAll(labelColumn, fieldColumn);
+    }
+
+    public static void addInspectorRow(GridPane form, int row, String label, Node field) {
+        Label labelNode = new Label(label);
+        labelNode.setMinWidth(92);
+        labelNode.setMaxWidth(Double.MAX_VALUE);
+
+        if (field instanceof Region region) {
+            region.setMaxWidth(Double.MAX_VALUE);
+        }
+        GridPane.setHgrow(field, Priority.ALWAYS);
+
+        form.add(labelNode, 0, row);
+        form.add(field, 1, row);
+    }
+
+    public static void addInspectorActions(GridPane form, int row, Button... buttons) {
+        HBox actions = compactActionRow(buttons);
+        actions.setMaxWidth(Double.MAX_VALUE);
+        GridPane.setHgrow(actions, Priority.ALWAYS);
+        form.add(actions, 0, row, 2, 1);
+    }
+
+    public static void stretchToolbarField(TextField field) {
+        field.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(field, Priority.ALWAYS);
     }
 
     public static HBox toolbar(Node... controls) {
@@ -233,6 +308,22 @@ public class FxTheme {
         return button;
     }
 
+    public static Button refreshButton() {
+        Button button = secondaryButton("\u21BB");
+        button.getStyleClass().add("refresh-button");
+        button.setTooltip(new Tooltip("Refresh"));
+        button.setAccessibleText("Refresh");
+        button.setMinWidth(34);
+        button.setPrefWidth(34);
+        button.setMaxWidth(34);
+        return button;
+    }
+
+    public static void setVisible(Node node, boolean visible) {
+        node.setVisible(visible);
+        node.setManaged(visible);
+    }
+
     private static void prepareButton(Button button) {
         button.setMinHeight(30);
         button.setMinWidth(74);
@@ -263,6 +354,10 @@ public class FxTheme {
 
     public static void showError(String message) {
         showAlert(Alert.AlertType.ERROR, "SAFAD", message);
+    }
+
+    public static void showWarning(String message) {
+        showAlert(Alert.AlertType.WARNING, "SAFAD", message);
     }
 
     public static boolean confirm(String message) {

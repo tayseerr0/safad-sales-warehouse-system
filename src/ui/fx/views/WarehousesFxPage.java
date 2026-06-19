@@ -28,6 +28,8 @@ public class WarehousesFxPage extends VBox {
     private final TextField capacityField = FxTheme.textField("Capacity");
     private final TextField searchField = FxTheme.textField("Search warehouses");
     private final TableView<Warehouse> table = new TableView<>();
+    private Button warehouseActionButton;
+    private Button deleteButton;
 
     public WarehousesFxPage() {
         getStyleClass().add("ledger-page");
@@ -48,43 +50,41 @@ public class WarehousesFxPage extends VBox {
     }
 
     private HBox createToolbar() {
-        Button searchButton = FxTheme.secondaryButton("Search");
-        Button refreshButton = FxTheme.secondaryButton("Refresh");
-        searchButton.setOnAction(e -> searchWarehouses());
-        refreshButton.setOnAction(e -> loadWarehouses());
+        Button refreshButton = FxTheme.refreshButton();
+        refreshButton.setOnAction(e -> {
+            searchField.clear();
+            loadWarehouses();
+        });
 
-        HBox toolbar = FxTheme.ledgerCommandBar(searchField, searchButton, refreshButton);
-        HBox.setHgrow(searchField, Priority.ALWAYS);
+        HBox toolbar = FxTheme.ledgerCommandBar(searchField, refreshButton);
+        FxTheme.stretchToolbarField(searchField);
         return toolbar;
     }
 
     private GridPane createForm() {
         GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
+        FxTheme.configureInspectorForm(form);
 
         addRow(form, 0, "ID", idField);
         addRow(form, 1, "Name", nameField);
         addRow(form, 2, "Location", locationField);
         addRow(form, 3, "Capacity", capacityField);
 
-        Button addButton = FxTheme.primaryButton("Add");
-        Button updateButton = FxTheme.primaryButton("Update");
-        Button deleteButton = FxTheme.dangerButton("Delete");
+        warehouseActionButton = FxTheme.primaryButton("Add");
+        deleteButton = FxTheme.dangerButton("Delete");
         Button clearButton = FxTheme.secondaryButton("Clear");
 
-        addButton.setOnAction(e -> addWarehouse());
-        updateButton.setOnAction(e -> updateWarehouse());
+        warehouseActionButton.setOnAction(e -> saveWarehouse());
         deleteButton.setOnAction(e -> deleteWarehouse());
         clearButton.setOnAction(e -> clearForm());
+        FxTheme.setVisible(deleteButton, false);
 
-        form.add(FxTheme.actionRow(addButton, updateButton, deleteButton, clearButton), 0, 4, 2, 1);
+        FxTheme.addInspectorActions(form, 4, warehouseActionButton, deleteButton, clearButton);
         return form;
     }
 
     private void addRow(GridPane form, int row, String label, javafx.scene.Node field) {
-        form.add(new javafx.scene.control.Label(label), 0, row);
-        form.add(field, 1, row);
+        FxTheme.addInspectorRow(form, row, label, field);
     }
 
     private void configureTable() {
@@ -107,12 +107,6 @@ public class WarehousesFxPage extends VBox {
 
     private void loadWarehouses() {
         warehouses.setAll(warehouseDAO.getAllWarehouses());
-        table.refresh();
-    }
-
-    private void searchWarehouses() {
-        String keyword = searchField.getText().trim();
-        warehouses.setAll(keyword.isEmpty() ? warehouseDAO.getAllWarehouses() : warehouseDAO.searchWarehouses(keyword));
         table.refresh();
     }
 
@@ -139,6 +133,14 @@ public class WarehousesFxPage extends VBox {
             FxTheme.showInfo("Warehouse added successfully.");
             clearForm();
             loadWarehouses();
+        }
+    }
+
+    private void saveWarehouse() {
+        if (idField.getText().isBlank()) {
+            addWarehouse();
+        } else {
+            updateWarehouse();
         }
     }
 
@@ -196,6 +198,7 @@ public class WarehousesFxPage extends VBox {
         nameField.setText(warehouse.getWarehouseName());
         locationField.setText(warehouse.getLocation());
         capacityField.setText(String.valueOf(warehouse.getCapacity()));
+        updateFormMode();
     }
 
     private void clearForm() {
@@ -204,5 +207,16 @@ public class WarehousesFxPage extends VBox {
         locationField.clear();
         capacityField.clear();
         table.getSelectionModel().clearSelection();
+        updateFormMode();
+    }
+
+    private void updateFormMode() {
+        boolean selected = !idField.getText().isBlank();
+        if (warehouseActionButton != null) {
+            warehouseActionButton.setText(selected ? "Update" : "Add");
+        }
+        if (deleteButton != null) {
+            FxTheme.setVisible(deleteButton, selected);
+        }
     }
 }

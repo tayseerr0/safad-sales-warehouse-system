@@ -212,6 +212,11 @@
     -fx-background-color: #b91c1c;
 }
 
+.refresh-button {
+    -fx-padding: 5 8 5 8;
+    -fx-font-size: 13px;
+}
+
 .text-field,
 .combo-box,
 .date-picker {
@@ -960,6 +965,89 @@
     -fx-padding: 0;
 }
 
+.dashboard-board .ledger-surface {
+    -fx-padding: 7px;
+}
+
+.dashboard-board .ledger-command-bar {
+    -fx-padding: 4px;
+}
+
+.dashboard-board .dashboard-status-card,
+.dashboard-board .dashboard-snapshot-item,
+.dashboard-board .queue-row,
+.dashboard-board .warehouse-load-row {
+    -fx-padding: 5px;
+}
+
+.dashboard-board .primary-button,
+.dashboard-board .secondary-button {
+    -fx-padding: 5 9 5 9;
+}
+
+.dashboard-board .business-chart {
+    -fx-padding: 0;
+}
+
+.dashboard-chart-controls {
+    -fx-padding: 4px;
+    -fx-alignment: center;
+}
+
+.dashboard-kpi-strip .dashboard-metric-card {
+    -fx-padding: 7 10 7 10;
+}
+
+.dashboard-compact-block {
+    -fx-background-color: transparent;
+    -fx-spacing: 5px;
+}
+
+.dashboard-chart-frame {
+    -fx-min-height: 255px;
+    -fx-pref-height: 305px;
+}
+
+.dashboard-fit-board {
+    -fx-min-height: 350px;
+    -fx-pref-height: 390px;
+}
+
+.dashboard-balanced-column {
+    -fx-spacing: 6px;
+}
+
+.dashboard-shortcut-grid {
+    -fx-min-height: 150px;
+    -fx-pref-height: 165px;
+}
+
+.dashboard-shortcut-tile {
+    -fx-min-height: 46px;
+    -fx-pref-height: 52px;
+    -fx-font-size: 11px;
+    -fx-font-weight: 900;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-padding: 6 8 6 8;
+}
+
+.dashboard-recent-list {
+    -fx-spacing: 5px;
+}
+
+.dashboard-recent-row .queue-marker {
+    -fx-min-height: 24px;
+}
+
+.dashboard-recent-row .queue-title {
+    -fx-font-size: 11px;
+}
+
+.dashboard-recent-row .queue-detail {
+    -fx-font-size: 10px;
+}
+
 .dashboard-metric-card {
     -fx-padding: 10 12 10 12;
     -fx-border-width: 1 1 1 4;
@@ -1388,6 +1476,22 @@
     -fx-padding: 5 9 5 9;
 }
 
+.inspector-scroll,
+.inspector-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.inspector-scroll {
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+
+.transfer-actions-row {
+    -fx-padding: 4 0 8 0;
+    -fx-border-color: transparent transparent #d3dfca transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
 .ledger-section-label {
     -fx-text-fill: #2f6508;
     -fx-font-size: 11px;
@@ -1749,4 +1853,9 @@
 .connected-plot .chart-line-symbol,
 .chart-line-symbol {
     -fx-background-color: #34424a, #f4f7f1;
+}
+
+.refresh-button {
+    -fx-padding: 5 8 5 8;
+    -fx-font-size: 13px;
 }

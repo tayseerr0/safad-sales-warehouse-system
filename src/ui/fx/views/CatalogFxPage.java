@@ -12,6 +12,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import model.Brand;
 import model.Category;
@@ -37,6 +38,10 @@ public class CatalogFxPage extends VBox {
     private final TextField brandDescriptionField = FxTheme.textField("Description");
     private final TextField brandSearchField = FxTheme.textField("Search brands");
     private final TableView<Brand> brandTable = new TableView<>();
+    private Button categoryActionButton;
+    private Button categoryDeleteButton;
+    private Button brandActionButton;
+    private Button brandDeleteButton;
 
     public CatalogFxPage(ProductsFxPage productsPage) {
         getStyleClass().add("ledger-page");
@@ -64,62 +69,79 @@ public class CatalogFxPage extends VBox {
 
     private BorderPane createCategoryPane() {
         return FxTheme.ledgerWorkspace(
-                FxTheme.ledgerSurface("Category Ledger", FxTheme.ledgerCommandBar(categorySearchField), categoryTable),
+                FxTheme.ledgerSurface("Category Ledger", createCategoryToolbar(), categoryTable),
                 FxTheme.ledgerInspector("Category Inspector", createCategoryForm())
         );
     }
 
     private BorderPane createBrandPane() {
         return FxTheme.ledgerWorkspace(
-                FxTheme.ledgerSurface("Brand Ledger", FxTheme.ledgerCommandBar(brandSearchField), brandTable),
+                FxTheme.ledgerSurface("Brand Ledger", createBrandToolbar(), brandTable),
                 FxTheme.ledgerInspector("Brand Inspector", createBrandForm())
         );
     }
 
+    private HBox createCategoryToolbar() {
+        Button refresh = FxTheme.refreshButton();
+        refresh.setOnAction(e -> {
+            categorySearchField.clear();
+            loadData();
+        });
+        HBox toolbar = FxTheme.ledgerCommandBar(categorySearchField, refresh);
+        FxTheme.stretchToolbarField(categorySearchField);
+        return toolbar;
+    }
+
+    private HBox createBrandToolbar() {
+        Button refresh = FxTheme.refreshButton();
+        refresh.setOnAction(e -> {
+            brandSearchField.clear();
+            loadData();
+        });
+        HBox toolbar = FxTheme.ledgerCommandBar(brandSearchField, refresh);
+        FxTheme.stretchToolbarField(brandSearchField);
+        return toolbar;
+    }
+
     private GridPane createCategoryForm() {
         GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
+        FxTheme.configureInspectorForm(form);
         addRow(form, 0, "ID", categoryIdField);
         addRow(form, 1, "Name", categoryNameField);
         addRow(form, 2, "Description", categoryDescriptionField);
         addRow(form, 3, "Type", categoryTypeField);
 
-        Button add = FxTheme.primaryButton("Add");
-        Button update = FxTheme.primaryButton("Update");
-        Button delete = FxTheme.dangerButton("Delete");
+        categoryActionButton = FxTheme.primaryButton("Add");
+        categoryDeleteButton = FxTheme.dangerButton("Delete");
         Button clear = FxTheme.secondaryButton("Clear");
-        add.setOnAction(e -> addCategory());
-        update.setOnAction(e -> updateCategory());
-        delete.setOnAction(e -> deleteCategory());
+        categoryActionButton.setOnAction(e -> saveCategory());
+        categoryDeleteButton.setOnAction(e -> deleteCategory());
         clear.setOnAction(e -> clearCategoryForm());
-        form.add(FxTheme.actionRow(add, update, delete, clear), 0, 4, 2, 1);
+        FxTheme.setVisible(categoryDeleteButton, false);
+        FxTheme.addInspectorActions(form, 4, categoryActionButton, categoryDeleteButton, clear);
         return form;
     }
 
     private GridPane createBrandForm() {
         GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
+        FxTheme.configureInspectorForm(form);
         addRow(form, 0, "ID", brandIdField);
         addRow(form, 1, "Name", brandNameField);
         addRow(form, 2, "Description", brandDescriptionField);
 
-        Button add = FxTheme.primaryButton("Add");
-        Button update = FxTheme.primaryButton("Update");
-        Button delete = FxTheme.dangerButton("Delete");
+        brandActionButton = FxTheme.primaryButton("Add");
+        brandDeleteButton = FxTheme.dangerButton("Delete");
         Button clear = FxTheme.secondaryButton("Clear");
-        add.setOnAction(e -> addBrand());
-        update.setOnAction(e -> updateBrand());
-        delete.setOnAction(e -> deleteBrand());
+        brandActionButton.setOnAction(e -> saveBrand());
+        brandDeleteButton.setOnAction(e -> deleteBrand());
         clear.setOnAction(e -> clearBrandForm());
-        form.add(FxTheme.actionRow(add, update, delete, clear), 0, 3, 2, 1);
+        FxTheme.setVisible(brandDeleteButton, false);
+        FxTheme.addInspectorActions(form, 3, brandActionButton, brandDeleteButton, clear);
         return form;
     }
 
     private void addRow(GridPane form, int row, String label, javafx.scene.Node field) {
-        form.add(new javafx.scene.control.Label(label), 0, row);
-        form.add(field, 1, row);
+        FxTheme.addInspectorRow(form, row, label, field);
     }
 
     private void configureCategoryTable() {
@@ -167,6 +189,14 @@ public class CatalogFxPage extends VBox {
         }
     }
 
+    private void saveCategory() {
+        if (categoryIdField.getText().isBlank()) {
+            addCategory();
+        } else {
+            updateCategory();
+        }
+    }
+
     private void deleteCategory() {
         if (!categoryIdField.getText().isBlank() && FxTheme.confirm("Delete selected category?")) {
             categoryDAO.deleteCategory(Integer.parseInt(categoryIdField.getText()));
@@ -192,6 +222,14 @@ public class CatalogFxPage extends VBox {
         }
     }
 
+    private void saveBrand() {
+        if (brandIdField.getText().isBlank()) {
+            addBrand();
+        } else {
+            updateBrand();
+        }
+    }
+
     private void deleteBrand() {
         if (!brandIdField.getText().isBlank() && FxTheme.confirm("Delete selected brand?")) {
             brandDAO.deleteBrand(Integer.parseInt(brandIdField.getText()));
@@ -205,12 +243,14 @@ public class CatalogFxPage extends VBox {
         categoryNameField.setText(category.getCategoryName());
         categoryDescriptionField.setText(category.getDescription());
         categoryTypeField.setText(category.getCategoryType());
+        updateCategoryFormMode();
     }
 
     private void fillBrandForm(Brand brand) {
         brandIdField.setText(String.valueOf(brand.getBrandId()));
         brandNameField.setText(brand.getBrandName());
         brandDescriptionField.setText(brand.getDescription());
+        updateBrandFormMode();
     }
 
     private void clearCategoryForm() {
@@ -219,6 +259,7 @@ public class CatalogFxPage extends VBox {
         categoryDescriptionField.clear();
         categoryTypeField.clear();
         categoryTable.getSelectionModel().clearSelection();
+        updateCategoryFormMode();
     }
 
     private void clearBrandForm() {
@@ -226,5 +267,26 @@ public class CatalogFxPage extends VBox {
         brandNameField.clear();
         brandDescriptionField.clear();
         brandTable.getSelectionModel().clearSelection();
+        updateBrandFormMode();
+    }
+
+    private void updateCategoryFormMode() {
+        boolean selected = !categoryIdField.getText().isBlank();
+        if (categoryActionButton != null) {
+            categoryActionButton.setText(selected ? "Update" : "Add");
+        }
+        if (categoryDeleteButton != null) {
+            FxTheme.setVisible(categoryDeleteButton, selected);
+        }
+    }
+
+    private void updateBrandFormMode() {
+        boolean selected = !brandIdField.getText().isBlank();
+        if (brandActionButton != null) {
+            brandActionButton.setText(selected ? "Update" : "Add");
+        }
+        if (brandDeleteButton != null) {
+            FxTheme.setVisible(brandDeleteButton, selected);
+        }
     }
 }

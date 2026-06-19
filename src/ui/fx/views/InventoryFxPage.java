@@ -26,7 +26,7 @@ public class InventoryFxPage extends VBox {
     private final ComboBox<String> viewComboBox = new ComboBox<>();
     private final ComboBox<ComboOption> warehouseComboBox = new ComboBox<>();
     private final TextField searchField = FxTheme.textField("Search inventory");
-    private final TextField selectedStockField = FxTheme.textField("Select inventory row");
+    private final Label selectedStockLabel = new Label("Select an inventory row.");
     private final TextField thresholdField = FxTheme.textField("Threshold");
     private final TableView<Map<String, Object>> table = new TableView<>();
     private DefaultTableModel currentModel;
@@ -48,9 +48,10 @@ public class InventoryFxPage extends VBox {
         viewComboBox.getSelectionModel().selectFirst();
 
         Button run = FxTheme.primaryButton("Run");
-        Button refresh = FxTheme.secondaryButton("Refresh");
+        Button refresh = FxTheme.refreshButton();
         run.setOnAction(e -> runReport());
         refresh.setOnAction(e -> {
+            searchField.clear();
             loadFilters();
             runReport();
         });
@@ -69,21 +70,19 @@ public class InventoryFxPage extends VBox {
                 refresh,
                 run
         );
-        HBox.setHgrow(searchField, Priority.ALWAYS);
+        FxTheme.stretchToolbarField(searchField);
 
-        selectedStockField.setEditable(false);
+        selectedStockLabel.getStyleClass().add("muted-label");
+        selectedStockLabel.setWrapText(true);
         thresholdField.getStyleClass().add("compact-input");
         Button updateThreshold = FxTheme.primaryButton("Update Threshold");
         updateThreshold.setOnAction(e -> updateThreshold());
 
         GridPane thresholdEditor = new GridPane();
-        thresholdEditor.setHgap(8);
-        thresholdEditor.setVgap(8);
-        thresholdEditor.add(new Label("Selected"), 0, 0);
-        thresholdEditor.add(selectedStockField, 0, 1);
-        thresholdEditor.add(new Label("Threshold"), 0, 2);
-        thresholdEditor.add(thresholdField, 0, 3);
-        thresholdEditor.add(updateThreshold, 0, 4);
+        FxTheme.configureInspectorForm(thresholdEditor);
+        FxTheme.addInspectorRow(thresholdEditor, 0, "Selected", selectedStockLabel);
+        FxTheme.addInspectorRow(thresholdEditor, 1, "Threshold", thresholdField);
+        FxTheme.addInspectorActions(thresholdEditor, 2, updateThreshold);
 
         FxTheme.styleTable(table);
         table.getSelectionModel().selectedItemProperty().addListener((obs, oldRow, row) -> fillThresholdEditor(row));
@@ -125,8 +124,7 @@ public class InventoryFxPage extends VBox {
     private void updateWarehouseVisibility() {
         String view = viewComboBox.getValue();
         boolean needsWarehouse = "Warehouse Stock".equals(view) || "Low Stock".equals(view);
-        warehouseComboBox.setVisible(needsWarehouse);
-        warehouseComboBox.setManaged(needsWarehouse);
+        FxTheme.setVisible(warehouseComboBox, needsWarehouse);
     }
 
     private void applySearch() {
@@ -176,7 +174,7 @@ public class InventoryFxPage extends VBox {
         String quantity = text(firstValue(row, "Current Quantity", "Quantity"));
         String threshold = text(row.get("Threshold"));
 
-        selectedStockField.setText(warehouse + " | " + product + " | Qty: " + quantity);
+        selectedStockLabel.setText(warehouse + " | " + product + " | Qty: " + quantity);
         thresholdField.setText(threshold);
     }
 
@@ -249,7 +247,7 @@ public class InventoryFxPage extends VBox {
     }
 
     private void clearThresholdEditor() {
-        selectedStockField.clear();
+        selectedStockLabel.setText("Select an inventory row.");
         thresholdField.clear();
         table.getSelectionModel().clearSelection();
     }

@@ -34,6 +34,8 @@ public class ClientsFxPage extends VBox {
     private final ComboBox<String> typeComboBox = new ComboBox<>();
     private final TextField searchField = FxTheme.textField("Search clients");
     private final TableView<Client> table = new TableView<>();
+    private Button clientActionButton;
+    private Button deleteButton;
 
     public ClientsFxPage() {
         FxTheme.styleComboBox(typeComboBox);
@@ -59,12 +61,13 @@ public class ClientsFxPage extends VBox {
     }
 
     private HBox createToolbar() {
-        Button searchButton = FxTheme.secondaryButton("Search");
-        Button refreshButton = FxTheme.secondaryButton("Refresh");
-        searchButton.setOnAction(e -> searchClients());
-        refreshButton.setOnAction(e -> loadClients());
+        Button refreshButton = FxTheme.refreshButton();
+        refreshButton.setOnAction(e -> {
+            searchField.clear();
+            loadClients();
+        });
 
-        HBox toolbar = FxTheme.ledgerCommandBar(searchField, searchButton, refreshButton);
+        HBox toolbar = FxTheme.ledgerCommandBar(searchField, refreshButton);
         HBox.setHgrow(searchField, Priority.ALWAYS);
         return toolbar;
     }
@@ -83,17 +86,16 @@ public class ClientsFxPage extends VBox {
         addRow(form, 6, "Address", addressField);
         addRow(form, 7, "Type", typeComboBox);
 
-        Button addButton = FxTheme.primaryButton("Add");
-        Button updateButton = FxTheme.primaryButton("Update");
-        Button deleteButton = FxTheme.dangerButton("Delete");
+        clientActionButton = FxTheme.primaryButton("Add");
+        deleteButton = FxTheme.dangerButton("Delete");
         Button clearButton = FxTheme.secondaryButton("Clear");
 
-        addButton.setOnAction(e -> addClient());
-        updateButton.setOnAction(e -> updateClient());
+        clientActionButton.setOnAction(e -> saveClient());
         deleteButton.setOnAction(e -> deleteClient());
         clearButton.setOnAction(e -> clearForm());
+        FxTheme.setVisible(deleteButton, false);
 
-        form.add(FxTheme.actionRow(addButton, updateButton, deleteButton, clearButton), 0, 8, 2, 1);
+        form.add(FxTheme.compactActionRow(clientActionButton, deleteButton, clearButton), 0, 8, 2, 1);
         return form;
     }
 
@@ -125,11 +127,6 @@ public class ClientsFxPage extends VBox {
         clients.setAll(clientDAO.getAllClients());
     }
 
-    private void searchClients() {
-        String keyword = searchField.getText().trim();
-        clients.setAll(keyword.isEmpty() ? clientDAO.getAllClients() : clientDAO.searchClients(keyword));
-    }
-
     private void addClient() {
         Client client = readForm(false);
         if (client != null && clientDAO.addClient(client)) {
@@ -138,6 +135,14 @@ public class ClientsFxPage extends VBox {
             loadClients();
         } else {
             FxTheme.showError("Failed to add client.");
+        }
+    }
+
+    private void saveClient() {
+        if (idField.getText().isBlank()) {
+            addClient();
+        } else {
+            updateClient();
         }
     }
 
@@ -201,6 +206,7 @@ public class ClientsFxPage extends VBox {
         cityField.setText(client.getCity());
         addressField.setText(client.getAddress());
         typeComboBox.setValue(client.getClientType());
+        updateFormMode();
     }
 
     private void clearForm() {
@@ -213,5 +219,16 @@ public class ClientsFxPage extends VBox {
         addressField.clear();
         typeComboBox.getSelectionModel().selectFirst();
         table.getSelectionModel().clearSelection();
+        updateFormMode();
+    }
+
+    private void updateFormMode() {
+        boolean selected = !idField.getText().isBlank();
+        if (clientActionButton != null) {
+            clientActionButton.setText(selected ? "Update" : "Add");
+        }
+        if (deleteButton != null) {
+            FxTheme.setVisible(deleteButton, selected);
+        }
     }
 }

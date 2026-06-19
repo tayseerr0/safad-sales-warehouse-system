@@ -9,6 +9,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -35,7 +36,6 @@ public class TransfersFxPage extends VBox {
 
     private final ObservableList<TransferLine> currentItems = FXCollections.observableArrayList();
     private final ObservableList<WarehouseTransfer> transfers = FXCollections.observableArrayList();
-    private final ObservableList<WarehouseTransferItem> selectedTransferItems = FXCollections.observableArrayList();
 
     private final ComboBox<Warehouse> fromWarehouseComboBox = new ComboBox<>();
     private final ComboBox<Warehouse> toWarehouseComboBox = new ComboBox<>();
@@ -46,9 +46,9 @@ public class TransfersFxPage extends VBox {
     private final Label modeLabel = new Label("Mode: New Transfer");
     private final TableView<TransferLine> itemTable = new TableView<>();
     private final TableView<WarehouseTransfer> transferTable = new TableView<>();
-    private final TableView<WarehouseTransferItem> transferItemsTable = new TableView<>();
-    private Button itemUpdateButton;
+    private Button itemActionButton;
     private Button itemRemoveButton;
+    private Button transferActionButton;
 
     private int editingTransferId = -1;
 
@@ -70,18 +70,26 @@ public class TransfersFxPage extends VBox {
         modeLabel.getStyleClass().add("card-title");
         configureTables();
 
-        itemTable.setPrefHeight(155);
+        itemTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         VBox editor = new VBox(9,
                 sectionLabel("Transfer"),
-                createForm(),
+                createTransferForm(),
                 createSaveButtons(),
-                sectionLabel("Current Items"),
-                itemTable
+                sectionLabel("Line Item"),
+                createItemForm()
         );
         editor.getStyleClass().add("workflow-editor");
 
-        return FxTheme.ledgerWorkspace(createHistoryPane(), FxTheme.ledgerInspector("Transfer Inspector", editor));
+        return FxTheme.ledgerWorkspace(createHistoryPane(), FxTheme.ledgerInspector("Transfer Inspector", scrollEditor(editor)));
+    }
+
+    private ScrollPane scrollEditor(VBox editor) {
+        ScrollPane scroll = new ScrollPane(editor);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        scroll.getStyleClass().add("inspector-scroll");
+        return scroll;
     }
 
     private Label sectionLabel(String text) {
@@ -90,55 +98,60 @@ public class TransfersFxPage extends VBox {
         return label;
     }
 
-    private GridPane createForm() {
+    private GridPane createTransferForm() {
         GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
+        FxTheme.configureInspectorForm(form);
         addRow(form, 0, "Status", modeLabel);
         addRow(form, 1, "From Warehouse", fromWarehouseComboBox);
         addRow(form, 2, "To Warehouse", toWarehouseComboBox);
         addRow(form, 3, "Date", transferDatePicker);
-        addRow(form, 4, "Product", productComboBox);
-        addRow(form, 5, "Quantity", quantityField);
+        return form;
+    }
 
-        Button add = FxTheme.primaryButton("Add");
-        itemUpdateButton = FxTheme.secondaryButton("Update");
+    private GridPane createItemForm() {
+        GridPane form = new GridPane();
+        FxTheme.configureInspectorForm(form);
+        addRow(form, 0, "Product", productComboBox);
+        addRow(form, 1, "Quantity", quantityField);
+
+        itemActionButton = FxTheme.primaryButton("Add");
         itemRemoveButton = FxTheme.secondaryButton("Remove");
         Button clear = FxTheme.secondaryButton("Clear");
-        add.setOnAction(e -> addItem());
-        itemUpdateButton.setOnAction(e -> updateSelectedItem());
+        itemActionButton.setOnAction(e -> saveOrUpdateItem());
         itemRemoveButton.setOnAction(e -> removeItem());
-        clear.setOnAction(e -> {
-            currentItems.clear();
-            clearItemForm();
-        });
-        setVisible(itemUpdateButton, false);
-        setVisible(itemRemoveButton, false);
-        form.add(FxTheme.actionRow(add, itemUpdateButton, itemRemoveButton, clear), 0, 6, 2, 1);
+        clear.setOnAction(e -> clearItemForm());
+        FxTheme.setVisible(itemRemoveButton, false);
+        FxTheme.addInspectorActions(form, 2, itemActionButton, itemRemoveButton, clear);
         return form;
     }
 
     private HBox createSaveButtons() {
-        Button save = FxTheme.primaryButton("Save New");
-        Button update = FxTheme.primaryButton("Update Existing");
-        Button clear = FxTheme.secondaryButton("New Transfer");
-        save.setOnAction(e -> saveTransfer());
-        update.setOnAction(e -> updateTransfer());
+        transferActionButton = FxTheme.primaryButton("Save");
+        Button clear = FxTheme.secondaryButton("Clear");
+        transferActionButton.setOnAction(e -> saveOrUpdateTransfer());
         clear.setOnAction(e -> clearForm());
-        return FxTheme.toolbar(clear, update, save);
+        HBox actions = FxTheme.compactActionRow(transferActionButton, clear);
+        actions.getStyleClass().add("transfer-actions-row");
+        actions.setMaxWidth(Double.MAX_VALUE);
+        return actions;
     }
 
     private BorderPane createHistoryPane() {
-        HBox toolbar = FxTheme.toolbar(transferSearchField);
-        HBox.setHgrow(transferSearchField, Priority.ALWAYS);
+        Button refresh = FxTheme.refreshButton();
+        refresh.setOnAction(e -> {
+            transferSearchField.clear();
+            loadData();
+        });
+        HBox toolbar = FxTheme.ledgerCommandBar(transferSearchField, refresh);
+        FxTheme.stretchToolbarField(transferSearchField);
 
         VBox top = new VBox(10, transferTable);
         VBox bottom = new VBox(10,
-                FxTheme.toolbar(new Label("Selected Transfer Items")),
-                transferItemsTable
+                FxTheme.ledgerCommandBar(new Label("Selected Transfer Items")),
+                itemTable
         );
         VBox.setVgrow(transferTable, Priority.ALWAYS);
-        VBox.setVgrow(transferItemsTable, Priority.ALWAYS);
+        VBox.setVgrow(itemTable, Priority.ALWAYS);
 
         SplitPane split = new SplitPane(top, bottom);
         split.setOrientation(javafx.geometry.Orientation.VERTICAL);
@@ -152,8 +165,7 @@ public class TransfersFxPage extends VBox {
     }
 
     private void addRow(GridPane form, int row, String label, javafx.scene.Node field) {
-        form.add(new Label(label), 0, row);
-        form.add(field, 1, row);
+        FxTheme.addInspectorRow(form, row, label, field);
     }
 
     private void configureTables() {
@@ -175,7 +187,6 @@ public class TransfersFxPage extends VBox {
         FxTableUtil.installSearch(transferTable, transfers, transferSearchField);
         FxTheme.styleTable(transferTable);
         transferTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, transfer) -> {
-            loadTransferItems(transfer);
             if (transfer != null) {
                 loadSelectedTransferForEdit();
             }
@@ -184,13 +195,6 @@ public class TransfersFxPage extends VBox {
             if (e.getClickCount() == 2) loadSelectedTransferForEdit();
         });
 
-        transferItemsTable.getColumns().add(FxTableUtil.column("Item ID", WarehouseTransferItem::getTransferItemId, 80));
-        transferItemsTable.getColumns().add(FxTableUtil.column("Transfer ID", WarehouseTransferItem::getTransferId, 90));
-        transferItemsTable.getColumns().add(FxTableUtil.column("Product ID", WarehouseTransferItem::getProductId, 90));
-        transferItemsTable.getColumns().add(FxTableUtil.column("Product", item -> productName(item.getProductId()), 180));
-        transferItemsTable.getColumns().add(FxTableUtil.column("Quantity", WarehouseTransferItem::getQuantity, 90));
-        transferItemsTable.setItems(selectedTransferItems);
-        FxTheme.styleTable(transferItemsTable);
     }
 
     private void loadData() {
@@ -221,6 +225,14 @@ public class TransfersFxPage extends VBox {
             quantityField.clear();
         } catch (Exception e) {
             FxTheme.showError("Quantity must be valid.");
+        }
+    }
+
+    private void saveOrUpdateItem() {
+        if (itemTable.getSelectionModel().getSelectedItem() == null) {
+            addItem();
+        } else {
+            updateSelectedItem();
         }
     }
 
@@ -256,6 +268,14 @@ public class TransfersFxPage extends VBox {
             clearItemForm();
         } catch (Exception e) {
             FxTheme.showError("Quantity must be valid.");
+        }
+    }
+
+    private void saveOrUpdateTransfer() {
+        if (editingTransferId > 0) {
+            updateTransfer();
+        } else {
+            saveTransfer();
         }
     }
 
@@ -322,13 +342,6 @@ public class TransfersFxPage extends VBox {
         return transfer;
     }
 
-    private void loadTransferItems(WarehouseTransfer transfer) {
-        selectedTransferItems.clear();
-        if (transfer != null) {
-            selectedTransferItems.setAll(transferDAO.getTransferItems(transfer.getTransferId()));
-        }
-    }
-
     private void loadSelectedTransferForEdit() {
         WarehouseTransfer selected = transferTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
@@ -352,6 +365,7 @@ public class TransfersFxPage extends VBox {
         for (WarehouseTransferItem item : transfer.getItems()) {
             currentItems.add(new TransferLine(item.getProductId(), productName(item.getProductId()), item.getQuantity()));
         }
+        updateTransferEditMode();
     }
 
     private void fillItemForm(TransferLine line) {
@@ -367,17 +381,18 @@ public class TransfersFxPage extends VBox {
     }
 
     private void updateItemButtons(boolean itemSelected) {
-        if (itemUpdateButton != null) {
-            setVisible(itemUpdateButton, itemSelected);
+        if (itemActionButton != null) {
+            itemActionButton.setText(itemSelected ? "Update" : "Add");
         }
         if (itemRemoveButton != null) {
-            setVisible(itemRemoveButton, itemSelected);
+            FxTheme.setVisible(itemRemoveButton, itemSelected);
         }
     }
 
-    private void setVisible(javafx.scene.Node node, boolean visible) {
-        node.setVisible(visible);
-        node.setManaged(visible);
+    private void updateTransferEditMode() {
+        if (transferActionButton != null) {
+            transferActionButton.setText(editingTransferId > 0 ? "Update" : "Save");
+        }
     }
 
     private void selectProduct(int productId) {
@@ -416,6 +431,8 @@ public class TransfersFxPage extends VBox {
         transferDatePicker.setValue(LocalDate.now());
         currentItems.clear();
         clearItemForm();
+        transferTable.getSelectionModel().clearSelection();
+        updateTransferEditMode();
     }
 
     public static class TransferLine {

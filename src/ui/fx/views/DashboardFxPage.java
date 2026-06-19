@@ -10,9 +10,13 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.VBox;
 import ui.fx.FxChartUtil;
 import ui.fx.FxTheme;
@@ -32,6 +36,9 @@ import java.util.function.Consumer;
 public class DashboardFxPage extends VBox {
 
     private final Consumer<String> navigator;
+    private static final int CHART_SLIDE_COUNT = 2;
+    private int chartSlideIndex;
+    private BorderPane chartSlidePane;
 
     public DashboardFxPage(Consumer<String> navigator) {
         this.navigator = navigator;
@@ -42,11 +49,13 @@ public class DashboardFxPage extends VBox {
     }
 
     private VBox createContent() {
-        VBox content = new VBox(10);
+        VBox content = new VBox(8);
+        Node mainBoard = createMainBoard();
+        VBox.setVgrow(mainBoard, Priority.ALWAYS);
         content.getChildren().addAll(
                 createLedgerHeader(),
                 createTopMetrics(),
-                createMainBoard()
+                mainBoard
         );
         return content;
     }
@@ -88,50 +97,154 @@ public class DashboardFxPage extends VBox {
                 metricCard("Low Stock", String.valueOf(lowStockCount()), "Rows under threshold", "clay")
         );
 
+        row.getStyleClass().add("dashboard-kpi-strip");
         row.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
         return row;
     }
 
     private HBox createMainBoard() {
-        VBox left = new VBox(10, createOperationsStrip(), createAnalyticsPane());
-        HBox.setHgrow(left, Priority.ALWAYS);
+        Node chart = createChartSlideshow();
+        Node operations = createOperationsPanel();
+        Node workbench = createWorkbenchPanel();
 
-        VBox right = new VBox(10, createAttentionQueue(), createWarehouseLoadPane(), createQuickActions(), createSnapshotPane());
-        right.setPrefWidth(330);
-        right.setMinWidth(290);
-
-        HBox board = new HBox(10, left, right);
+        HBox board = new HBox(10, chart, operations, workbench);
         board.getStyleClass().add("dashboard-board");
+        board.getStyleClass().add("dashboard-fit-board");
+        board.setFillHeight(true);
+
+        setBoardColumn(chart, 2.1);
+        setBoardColumn(operations, 1.35);
+        setBoardColumn(workbench, 1.0);
         return board;
     }
 
-    private HBox createOperationsStrip() {
-        HBox row = new HBox(8,
-                statusCard("Warehouse Load", warehouseLoadText(), "Capacity used across all warehouses"),
-                statusCard("Sales Invoices", String.valueOf(rowCount("SalesInvoice")), "Recorded customer invoices"),
-                statusCard("Purchase Invoices", String.valueOf(rowCount("PurchaseInvoice")), "Supplier invoice records")
+    private void setBoardColumn(Node node, double growWeight) {
+        if (node instanceof Region region) {
+            region.setPrefWidth(growWeight * 260);
+            region.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        }
+        HBox.setHgrow(node, Priority.ALWAYS);
+    }
+
+    private Node createChartSlideshow() {
+        Label titleLabel = new Label("Dashboard Charts");
+        titleLabel.getStyleClass().add("ledger-surface-title");
+
+        Button previous = FxTheme.secondaryButton("Previous");
+        Button next = FxTheme.secondaryButton("Next");
+        previous.setOnAction(e -> showChartSlide(chartSlideIndex - 1));
+        next.setOnAction(e -> showChartSlide(chartSlideIndex + 1));
+
+        chartSlidePane = new BorderPane();
+        chartSlidePane.getStyleClass().add("dashboard-chart-frame");
+        chartSlidePane.setMinWidth(0);
+
+        HBox controls = FxTheme.ledgerCommandBar(previous, next);
+        controls.getStyleClass().add("dashboard-chart-controls");
+        controls.setAlignment(Pos.CENTER);
+        controls.setMaxWidth(Double.MAX_VALUE);
+
+        VBox chartBody = new VBox(6, chartSlidePane, controls);
+        chartBody.setMinWidth(0);
+        VBox.setVgrow(chartSlidePane, Priority.ALWAYS);
+
+        VBox surface = new VBox(8, titleLabel, chartBody);
+        surface.getStyleClass().add("ledger-surface");
+        surface.setMinWidth(0);
+        VBox.setVgrow(chartBody, Priority.ALWAYS);
+
+        showChartSlide(0);
+        return surface;
+    }
+
+    private Node createOperationsAlertsPane() {
+        HBox content = new HBox(8, titledBlock("Stock Alerts", createAttentionList()), titledBlock("Operations", createOperationsGrid()));
+        content.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
+        return FxTheme.ledgerSurface("Operations + Alerts", FxTheme.ledgerCommandBar(new Label("Daily work")), content);
+    }
+
+    private GridPane createOperationsGrid() {
+        GridPane grid = new GridPane();
+        grid.setHgap(7);
+        grid.setVgap(7);
+
+        Node warehouse = statusCard("Warehouse Load", warehouseLoadText(), "Capacity used");
+        Node sales = statusCard("Sales Invoices", String.valueOf(rowCount("SalesInvoice")), "Customer invoices");
+        Node purchases = statusCard("Purchase Invoices", String.valueOf(rowCount("PurchaseInvoice")), "Supplier records");
+
+        grid.add(warehouse, 0, 0, 2, 1);
+        grid.add(sales, 0, 1);
+        grid.add(purchases, 1, 1);
+        growGridNode(warehouse);
+        growGridNode(sales);
+        growGridNode(purchases);
+        return grid;
+    }
+
+    private Node createOperationsPanel() {
+        VBox content = new VBox(8,
+                createOperationsGrid(),
+                titledBlock("Recent Invoices", createRecentInvoiceList()),
+                titledBlock("Stock Alerts", createAttentionList()),
+                titledBlock("Warehouse Load", createWarehouseLoadList())
         );
-        row.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
-        return row;
+        content.getStyleClass().add("dashboard-balanced-column");
+        VBox.setVgrow(content.getChildren().get(2), Priority.ALWAYS);
+        VBox.setVgrow(content.getChildren().get(3), Priority.ALWAYS);
+        return FxTheme.ledgerSurface("Operations", FxTheme.ledgerCommandBar(new Label("Alerts and capacity")), content);
     }
 
-    private HBox createAnalyticsPane() {
-        Node monthly = FxTheme.ledgerSurface("Monthly Sales Ledger", FxTheme.ledgerCommandBar(new Label("Trend")), FxChartUtil.connectedPlot(
-                "Sales by Month - " + LocalDate.now().getYear(),
-                monthlySales()
-        ));
-        Node products = FxTheme.ledgerSurface("Demand Ranking", FxTheme.ledgerCommandBar(new Label("Top sold items")), FxChartUtil.barChart(
-                "Sold Quantity by Product",
-                topSoldProducts()
-        ));
-
-        HBox row = new HBox(10, monthly, products);
-        HBox.setHgrow(monthly, Priority.ALWAYS);
-        HBox.setHgrow(products, Priority.ALWAYS);
-        return row;
+    private Node createWorkbenchPanel() {
+        VBox content = new VBox(8,
+                titledBlock("Shortcuts", createQuickActions()),
+                titledBlock("Directory Snapshot", createSnapshotGrid()),
+                titledBlock("Recent Transfers", createRecentTransferList())
+        );
+        content.getStyleClass().add("dashboard-balanced-column");
+        VBox.setVgrow(content.getChildren().get(1), Priority.ALWAYS);
+        VBox.setVgrow(content.getChildren().get(2), Priority.ALWAYS);
+        return FxTheme.ledgerSurface("Workbench", FxTheme.ledgerCommandBar(new Label("Open and inspect")), content);
     }
 
-    private VBox createAttentionQueue() {
+    private void growGridNode(Node node) {
+        if (node instanceof Region region) {
+            region.setMaxWidth(Double.MAX_VALUE);
+        }
+        GridPane.setHgrow(node, Priority.ALWAYS);
+    }
+
+    private void showChartSlide(int requestedIndex) {
+        chartSlideIndex = Math.floorMod(requestedIndex, CHART_SLIDE_COUNT);
+        chartSlidePane.setCenter(createChartSlide());
+    }
+
+    private String chartSlideTitle() {
+        return chartSlideIndex == 0 ? "Monthly Sales Ledger" : "Demand Ranking";
+    }
+
+    private Node createChartSlide() {
+        Node chart;
+        if (chartSlideIndex == 0) {
+            chart = FxChartUtil.connectedPlot(
+                    "Sales by Month - " + LocalDate.now().getYear(),
+                    monthlySales()
+            );
+        } else {
+            chart = FxChartUtil.barChart(
+                    "Sold Quantity by Product",
+                    topSoldProducts()
+            );
+        }
+
+        if (chart instanceof Region region) {
+            region.setMinHeight(250);
+            region.setPrefHeight(300);
+            region.setMaxHeight(Double.MAX_VALUE);
+        }
+        return chart;
+    }
+
+    private VBox createAttentionList() {
         VBox list = new VBox(6);
         Map<String, Number> rows = lowStockRows();
 
@@ -143,10 +256,14 @@ public class DashboardFxPage extends VBox {
             }
         }
 
-        return FxTheme.ledgerSurface("Attention Queue", FxTheme.ledgerCommandBar(new Label("Stock alerts")), list);
+        return list;
     }
 
     private VBox createWarehouseLoadPane() {
+        return FxTheme.ledgerSurface("Warehouse Board", FxTheme.ledgerCommandBar(new Label("Capacity use")), createWarehouseLoadList());
+    }
+
+    private VBox createWarehouseLoadList() {
         VBox rows = new VBox(7);
         Map<String, WarehouseLoad> loads = warehouseLoads();
 
@@ -158,21 +275,54 @@ public class DashboardFxPage extends VBox {
             }
         }
 
-        return FxTheme.ledgerSurface("Warehouse Board", FxTheme.ledgerCommandBar(new Label("Capacity use")), rows);
+        return rows;
     }
 
-    private VBox createQuickActions() {
-        VBox actions = new VBox(7,
-                actionButton("New Sale", "Sales", true),
-                actionButton("New Purchase", "Purchases", true),
-                actionButton("Stock Transfer", "Transfers", false),
-                actionButton("Inventory Review", "Inventory", false),
-                actionButton("Reports", "Reports", false)
-        );
-        return FxTheme.ledgerSurface("Workbench Shortcuts", FxTheme.ledgerCommandBar(new Label("Open module")), actions);
+    private Node createShortcutsSnapshotPane() {
+        HBox content = new HBox(8, titledBlock("Shortcuts", createQuickActions()), titledBlock("Directory", createSnapshotGrid()));
+        content.getChildren().forEach(node -> HBox.setHgrow(node, Priority.ALWAYS));
+        return FxTheme.ledgerSurface("Workbench + Snapshot", FxTheme.ledgerCommandBar(new Label("Open and inspect")), content);
     }
 
-    private VBox createSnapshotPane() {
+    private GridPane createQuickActions() {
+        GridPane actions = new GridPane();
+        actions.getStyleClass().add("dashboard-shortcut-grid");
+        actions.setHgap(7);
+        actions.setVgap(7);
+        for (int i = 0; i < 2; i++) {
+            ColumnConstraints column = new ColumnConstraints();
+            column.setPercentWidth(50);
+            column.setHgrow(Priority.ALWAYS);
+            column.setFillWidth(true);
+            actions.getColumnConstraints().add(column);
+        }
+        for (int i = 0; i < 3; i++) {
+            RowConstraints row = new RowConstraints();
+            row.setPercentHeight(33.333);
+            row.setVgrow(Priority.ALWAYS);
+            row.setFillHeight(true);
+            actions.getRowConstraints().add(row);
+        }
+
+        addShortcut(actions, actionButton("New Sale", "Sales", true), 0, 0);
+        addShortcut(actions, actionButton("New Purchase", "Purchases", true), 1, 0);
+        addShortcut(actions, actionButton("Stock Transfer", "Transfers", false), 0, 1);
+        addShortcut(actions, actionButton("Inventory Review", "Inventory", false), 1, 1);
+        addShortcut(actions, actionButton("Reports", "Reports", false), 0, 2);
+        addShortcut(actions, actionButton("Products / Catalog", "Products / Catalog", false), 1, 2);
+        return actions;
+    }
+
+    private void addShortcut(GridPane grid, Button button, int column, int row) {
+        button.getStyleClass().add("dashboard-shortcut-tile");
+        button.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        button.setWrapText(true);
+        GridPane.setHgrow(button, Priority.ALWAYS);
+        GridPane.setVgrow(button, Priority.ALWAYS);
+        grid.add(button, column, row);
+    }
+
+    private GridPane createSnapshotGrid() {
         GridPane grid = new GridPane();
         grid.setHgap(7);
         grid.setVgap(7);
@@ -181,7 +331,85 @@ public class DashboardFxPage extends VBox {
         grid.add(snapshotItem("Suppliers", String.valueOf(safeCount(() -> new SupplierDAO().getAllSuppliers().size()))), 0, 1);
         grid.add(snapshotItem("Warehouses", String.valueOf(safeCount(() -> new WarehouseDAO().getAllWarehouses().size()))), 1, 1);
 
-        return FxTheme.ledgerSurface("Directory Snapshot", FxTheme.ledgerCommandBar(new Label("Master data")), grid);
+        return grid;
+    }
+
+    private VBox titledBlock(String title, Node content) {
+        Label label = new Label(title);
+        label.getStyleClass().add("ledger-section-label");
+
+        VBox block = new VBox(6, label, content);
+        block.getStyleClass().add("dashboard-compact-block");
+        block.setMinWidth(0);
+        block.setMaxWidth(Double.MAX_VALUE);
+        VBox.setVgrow(content, Priority.ALWAYS);
+        return block;
+    }
+
+    private VBox createRecentInvoiceList() {
+        VBox rows = new VBox(6);
+        rows.getStyleClass().add("dashboard-recent-list");
+        String sql = """
+                SELECT title, detail FROM (
+                    SELECT invoice_date AS event_date,
+                           sales_invoice_id AS event_id,
+                           CONCAT('Sale #', sales_invoice_id, '  ', DATE_FORMAT(invoice_date, '%b %d')) AS title,
+                           CONCAT('Amount ', FORMAT(amount, 2), ' | Paid ', FORMAT(payment, 2)) AS detail
+                    FROM SalesInvoice
+                    UNION ALL
+                    SELECT invoice_date AS event_date,
+                           purchase_invoice_id AS event_id,
+                           CONCAT('Purchase #', purchase_invoice_id, '  ', DATE_FORMAT(invoice_date, '%b %d')) AS title,
+                           CONCAT('Amount ', FORMAT(amount, 2), ' | Paid ', FORMAT(payment, 2)) AS detail
+                    FROM PurchaseInvoice
+                ) recent
+                ORDER BY event_date DESC, event_id DESC
+                LIMIT 3
+                """;
+        addRecentRows(rows, sql, "Invoices", "No recent invoices");
+        return rows;
+    }
+
+    private VBox createRecentTransferList() {
+        VBox rows = new VBox(6);
+        rows.getStyleClass().add("dashboard-recent-list");
+        String sql = """
+                SELECT CONCAT('Transfer #', wt.transfer_id, '  ', DATE_FORMAT(wt.transfer_date, '%b %d')) AS title,
+                       CONCAT(COALESCE(source.warehouse_name, wt.from_warehouse_id),
+                              ' -> ',
+                              COALESCE(destination.warehouse_name, wt.to_warehouse_id)) AS detail
+                FROM WarehouseTransfer wt
+                LEFT JOIN Warehouse source ON wt.from_warehouse_id = source.warehouse_id
+                LEFT JOIN Warehouse destination ON wt.to_warehouse_id = destination.warehouse_id
+                ORDER BY wt.transfer_date DESC, wt.transfer_id DESC
+                LIMIT 3
+                """;
+        addRecentRows(rows, sql, "Transfers", "No recent transfers");
+        return rows;
+    }
+
+    private void addRecentRows(VBox rows, String sql, String emptyTitle, String emptyDetail) {
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                rows.getChildren().add(recentRow(rs.getString("title"), rs.getString("detail")));
+            }
+
+        } catch (SQLException e) {
+            rows.getChildren().clear();
+        }
+
+        if (rows.getChildren().isEmpty()) {
+            rows.getChildren().add(recentRow(emptyTitle, emptyDetail));
+        }
+    }
+
+    private HBox recentRow(String title, String detail) {
+        HBox row = queueRow(title, detail, "sage");
+        row.getStyleClass().add("dashboard-recent-row");
+        return row;
     }
 
     private Button actionButton(String text, String page, boolean primary) {

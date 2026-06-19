@@ -37,13 +37,17 @@ public class ProductsFxPage extends VBox {
     private final ComboBox<Brand> brandComboBox = new ComboBox<>();
     private final TextField searchField = FxTheme.textField("Search products");
     private final TableView<Product> table = new TableView<>();
+    private Button productActionButton;
+    private Button deleteButton;
 
     public ProductsFxPage() {
         FxTheme.styleComboBox(categoryComboBox);
         FxTheme.styleComboBox(brandComboBox);
         categoryComboBox.getStyleClass().add("compact-selector");
         brandComboBox.getStyleClass().add("compact-selector");
-        getChildren().add(createContent());
+        BorderPane content = createContent();
+        VBox.setVgrow(content, Priority.ALWAYS);
+        getChildren().add(content);
         loadCombos();
         loadProducts();
     }
@@ -59,23 +63,21 @@ public class ProductsFxPage extends VBox {
     }
 
     private HBox createToolbar() {
-        Button searchButton = FxTheme.secondaryButton("Search");
-        Button refreshButton = FxTheme.secondaryButton("Refresh");
-        searchButton.setOnAction(e -> searchProducts());
+        Button refreshButton = FxTheme.refreshButton();
         refreshButton.setOnAction(e -> {
+            searchField.clear();
             loadCombos();
             loadProducts();
         });
 
-        HBox toolbar = FxTheme.ledgerCommandBar(searchField, searchButton, refreshButton);
-        HBox.setHgrow(searchField, Priority.ALWAYS);
+        HBox toolbar = FxTheme.ledgerCommandBar(searchField, refreshButton);
+        FxTheme.stretchToolbarField(searchField);
         return toolbar;
     }
 
     private GridPane createForm() {
         GridPane form = new GridPane();
-        form.setHgap(10);
-        form.setVgap(10);
+        FxTheme.configureInspectorForm(form);
 
         addRow(form, 0, "ID", idField);
         addRow(form, 1, "Name", nameField);
@@ -84,23 +86,21 @@ public class ProductsFxPage extends VBox {
         addRow(form, 4, "Category", categoryComboBox);
         addRow(form, 5, "Brand", brandComboBox);
 
-        Button addButton = FxTheme.primaryButton("Add");
-        Button updateButton = FxTheme.primaryButton("Update");
-        Button deleteButton = FxTheme.dangerButton("Delete");
+        productActionButton = FxTheme.primaryButton("Add");
+        deleteButton = FxTheme.dangerButton("Delete");
         Button clearButton = FxTheme.secondaryButton("Clear");
 
-        addButton.setOnAction(e -> addProduct());
-        updateButton.setOnAction(e -> updateProduct());
+        productActionButton.setOnAction(e -> saveProduct());
         deleteButton.setOnAction(e -> deleteProduct());
         clearButton.setOnAction(e -> clearForm());
+        FxTheme.setVisible(deleteButton, false);
 
-        form.add(FxTheme.actionRow(addButton, updateButton, deleteButton, clearButton), 0, 6, 2, 1);
+        FxTheme.addInspectorActions(form, 6, productActionButton, deleteButton, clearButton);
         return form;
     }
 
     private void addRow(GridPane form, int row, String label, javafx.scene.Node field) {
-        form.add(new javafx.scene.control.Label(label), 0, row);
-        form.add(field, 1, row);
+        FxTheme.addInspectorRow(form, row, label, field);
     }
 
     private void configureTable() {
@@ -128,17 +128,20 @@ public class ProductsFxPage extends VBox {
         products.setAll(productDAO.getAllProducts());
     }
 
-    private void searchProducts() {
-        String keyword = searchField.getText().trim();
-        products.setAll(keyword.isEmpty() ? productDAO.getAllProducts() : productDAO.searchProducts(keyword));
-    }
-
     private void addProduct() {
         Product product = readForm(false);
         if (product != null && productDAO.addProduct(product)) {
             FxTheme.showInfo("Product added successfully.");
             clearForm();
             loadProducts();
+        }
+    }
+
+    private void saveProduct() {
+        if (idField.getText().isBlank()) {
+            addProduct();
+        } else {
+            updateProduct();
         }
     }
 
@@ -202,6 +205,7 @@ public class ProductsFxPage extends VBox {
         priceField.setText(String.valueOf(product.getDefaultSellingPrice()));
         selectCategory(product.getCategoryId());
         selectBrand(product.getBrandId());
+        updateFormMode();
     }
 
     private void selectCategory(int categoryId) {
@@ -230,5 +234,16 @@ public class ProductsFxPage extends VBox {
         if (!categoryComboBox.getItems().isEmpty()) categoryComboBox.getSelectionModel().selectFirst();
         if (!brandComboBox.getItems().isEmpty()) brandComboBox.getSelectionModel().selectFirst();
         table.getSelectionModel().clearSelection();
+        updateFormMode();
+    }
+
+    private void updateFormMode() {
+        boolean selected = !idField.getText().isBlank();
+        if (productActionButton != null) {
+            productActionButton.setText(selected ? "Update" : "Add");
+        }
+        if (deleteButton != null) {
+            FxTheme.setVisible(deleteButton, selected);
+        }
     }
 }
