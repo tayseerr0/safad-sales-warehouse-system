@@ -109,11 +109,11 @@ public class PurchasesFxPage extends VBox {
         VBox editor = new VBox(6,
                 sectionLabel("Invoice"),
                 createInvoiceForm(),
+                createSaveButtons(),
                 sectionLabel("Line Item"),
                 createItemForm(),
                 sectionLabel("Current Items"),
-                itemTable,
-                createSaveButtons()
+                itemTable
         );
         editor.getStyleClass().add("workflow-editor");
 
@@ -185,12 +185,16 @@ public class PurchasesFxPage extends VBox {
                 FxTheme.toolbar(new Label("Selected Invoice Items")),
                 previousItemsTable
         );
+        VBox.setVgrow(invoiceTable, Priority.ALWAYS);
+        VBox.setVgrow(previousItemsTable, Priority.ALWAYS);
 
         SplitPane split = new SplitPane(top, bottom);
         split.setOrientation(javafx.geometry.Orientation.VERTICAL);
         split.setDividerPositions(0.58);
+        split.setMinWidth(0);
 
         pane.setCenter(FxTheme.ledgerSurface("Purchase Invoice Ledger", toolbar, split));
+        pane.setMinWidth(0);
         return pane;
     }
 
@@ -222,7 +226,12 @@ public class PurchasesFxPage extends VBox {
         invoiceTable.getColumns().add(FxTableUtil.column("Amount", PurchaseInvoice::getAmount, 110));
         FxTableUtil.installSearch(invoiceTable, invoices, invoiceSearchField);
         FxTheme.styleTable(invoiceTable);
-        invoiceTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, invoice) -> loadInvoiceItems(invoice));
+        invoiceTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, invoice) -> {
+            loadInvoiceItems(invoice);
+            if (invoice != null) {
+                loadSelectedInvoiceForEdit();
+            }
+        });
         invoiceTable.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) loadSelectedInvoiceForEdit();
         });
@@ -509,7 +518,10 @@ public class PurchasesFxPage extends VBox {
     }
 
     private void updatePaymentToTotal() {
-        paymentField.setText(totalAmount().toString());
+        String paymentText = paymentField.getText();
+        if (paymentText == null || paymentText.trim().isEmpty()) {
+            paymentField.setText(totalAmount().toString());
+        }
     }
 
     private void selectSupplier(int supplierId) {

@@ -12,8 +12,8 @@ public class SupplierDAO {
     public boolean addSupplier(Supplier supplier) {
         String sql = """
                 INSERT INTO Supplier
-                (supplier_name, phone, email, starting_date, city, address)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (supplier_name, phone, email, starting_date, city, country, address)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = DBConnection.getConnection();
@@ -30,7 +30,8 @@ public class SupplierDAO {
             }
 
             stmt.setString(5, supplier.getCity());
-            stmt.setString(6, supplier.getAddress());
+            stmt.setString(6, supplier.getCountry());
+            stmt.setString(7, supplier.getAddress());
 
             return stmt.executeUpdate() > 0;
 
@@ -48,6 +49,7 @@ public class SupplierDAO {
                     email = ?,
                     starting_date = ?,
                     city = ?,
+                    country = ?,
                     address = ?
                 WHERE supplier_id = ?
                 """;
@@ -66,8 +68,9 @@ public class SupplierDAO {
             }
 
             stmt.setString(5, supplier.getCity());
-            stmt.setString(6, supplier.getAddress());
-            stmt.setInt(7, supplier.getSupplierId());
+            stmt.setString(6, supplier.getCountry());
+            stmt.setString(7, supplier.getAddress());
+            stmt.setInt(8, supplier.getSupplierId());
 
             return stmt.executeUpdate() > 0;
 
@@ -94,7 +97,7 @@ public class SupplierDAO {
 
     public Supplier getSupplierById(int supplierId) {
         String sql = """
-                SELECT supplier_id, supplier_name, phone, email, starting_date, city, address
+                SELECT supplier_id, supplier_name, phone, email, starting_date, city, country, address
                 FROM Supplier
                 WHERE supplier_id = ?
                 """;
@@ -121,7 +124,7 @@ public class SupplierDAO {
         List<Supplier> suppliers = new ArrayList<>();
 
         String sql = """
-                SELECT supplier_id, supplier_name, phone, email, starting_date, city, address
+                SELECT supplier_id, supplier_name, phone, email, starting_date, city, country, address
                 FROM Supplier
                 ORDER BY supplier_name
                 """;
@@ -145,12 +148,13 @@ public class SupplierDAO {
         List<Supplier> suppliers = new ArrayList<>();
 
         String sql = """
-                SELECT supplier_id, supplier_name, phone, email, starting_date, city, address
+                SELECT supplier_id, supplier_name, phone, email, starting_date, city, country, address
                 FROM Supplier
                 WHERE supplier_name LIKE ?
                    OR phone LIKE ?
                    OR email LIKE ?
                    OR city LIKE ?
+                   OR country LIKE ?
                    OR address LIKE ?
                 ORDER BY supplier_name
                 """;
@@ -165,6 +169,7 @@ public class SupplierDAO {
             stmt.setString(3, searchValue);
             stmt.setString(4, searchValue);
             stmt.setString(5, searchValue);
+            stmt.setString(6, searchValue);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -189,6 +194,7 @@ public class SupplierDAO {
                 rs.getString("email"),
                 startingDate != null ? startingDate.toLocalDate() : null,
                 rs.getString("city"),
+                rs.getString("country"),
                 rs.getString("address")
         );
     }

@@ -41,19 +41,23 @@ public class WarehouseTransferDAO {
                 for (WarehouseTransferItem item : transfer.getItems()) {
                     insertTransferItem(conn, transferId, item);
 
-                    inventoryDAO.decreaseStock(
+                    if (!inventoryDAO.decreaseStock(
                             conn,
                             item.getProductId(),
                             transfer.getFromWarehouseId(),
                             item.getQuantity()
-                    );
+                    )) {
+                        throw new SQLException("Failed to decrease source stock for product ID: " + item.getProductId());
+                    }
 
-                    inventoryDAO.increaseStock(
+                    if (!inventoryDAO.increaseStock(
                             conn,
                             item.getProductId(),
                             transfer.getToWarehouseId(),
                             item.getQuantity()
-                    );
+                    )) {
+                        throw new SQLException("Failed to increase destination stock for product ID: " + item.getProductId());
+                    }
                 }
 
                 conn.commit();
@@ -109,8 +113,12 @@ public class WarehouseTransferDAO {
 
                 for (WarehouseTransferItem item : updatedTransfer.getItems()) {
                     insertTransferItem(conn, updatedTransfer.getTransferId(), item);
-                    inventoryDAO.decreaseStock(conn, item.getProductId(), updatedTransfer.getFromWarehouseId(), item.getQuantity());
-                    inventoryDAO.increaseStock(conn, item.getProductId(), updatedTransfer.getToWarehouseId(), item.getQuantity());
+                    if (!inventoryDAO.decreaseStock(conn, item.getProductId(), updatedTransfer.getFromWarehouseId(), item.getQuantity())) {
+                        throw new SQLException("Failed to decrease source stock for product ID: " + item.getProductId());
+                    }
+                    if (!inventoryDAO.increaseStock(conn, item.getProductId(), updatedTransfer.getToWarehouseId(), item.getQuantity())) {
+                        throw new SQLException("Failed to increase destination stock for product ID: " + item.getProductId());
+                    }
                 }
 
                 conn.commit();

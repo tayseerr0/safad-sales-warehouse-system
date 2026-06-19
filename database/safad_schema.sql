@@ -42,6 +42,7 @@ CREATE TABLE Supplier (
     email VARCHAR(100),
     starting_date DATE,
     city VARCHAR(50),
+    country VARCHAR(50),
     address VARCHAR(255)
 );
 

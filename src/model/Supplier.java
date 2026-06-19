@@ -9,27 +9,30 @@ public class Supplier {
     private String email;
     private LocalDate startingDate;
     private String city;
+    private String country;
     private String address;
 
     public Supplier() {
     }
 
-    public Supplier(String supplierName, String phone, String email, LocalDate startingDate, String city, String address) {
+    public Supplier(String supplierName, String phone, String email, LocalDate startingDate, String city, String country, String address) {
         this.supplierName = supplierName;
         this.phone = phone;
         this.email = email;
         this.startingDate = startingDate;
         this.city = city;
+        this.country = country;
         this.address = address;
     }
 
-    public Supplier(int supplierId, String supplierName, String phone, String email, LocalDate startingDate, String city, String address) {
+    public Supplier(int supplierId, String supplierName, String phone, String email, LocalDate startingDate, String city, String country, String address) {
         this.supplierId = supplierId;
         this.supplierName = supplierName;
         this.phone = phone;
         this.email = email;
         this.startingDate = startingDate;
         this.city = city;
+        this.country = country;
         this.address = address;
     }
 
@@ -79,6 +82,14 @@ public class Supplier {
 
     public void setCity(String city) {
         this.city = city;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
     }
 
     public String getAddress() {

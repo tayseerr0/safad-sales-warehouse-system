@@ -83,12 +83,12 @@ INSERT INTO Client (client_id, client_name, phone, email, registration_date, cit
 -- 5. Suppliers
 -- =========================================================
 
-INSERT INTO Supplier (supplier_id, supplier_name, phone, email, starting_date, city, address) VALUES
-(1, 'HP Middle East Distributor', '022401001', 'orders@hpme.example', '2024-01-10', 'Dubai', 'Business Bay'),
-(2, 'Cisco Authorized Partner', '022401002', 'supply@cisco-partner.example', '2024-03-15', 'Amman', 'Mecca Street'),
-(3, 'APC Power Systems Supplier', '022401003', 'sales@apc-supplier.example', '2024-05-20', 'Ramallah', 'Industrial Zone'),
-(4, 'Microsoft Licensing Provider', '022401004', 'licenses@microsoft-provider.example', '2024-07-01', 'Jerusalem', 'Technology Park'),
-(5, 'R&M Cabling Distributor', '022401005', 'orders@rm-cabling.example', '2024-08-10', 'Nablus', 'Industrial Area');
+INSERT INTO Supplier (supplier_id, supplier_name, phone, email, starting_date, city, country, address) VALUES
+(1, 'HP Middle East Distributor', '022401001', 'orders@hpme.example', '2024-01-10', 'Dubai', 'UAE', 'Business Bay'),
+(2, 'Cisco Authorized Partner', '022401002', 'supply@cisco-partner.example', '2024-03-15', 'Amman', 'Jordan', 'Mecca Street'),
+(3, 'APC Power Systems Supplier', '022401003', 'sales@apc-supplier.example', '2024-05-20', 'Ramallah', 'Palestine', 'Industrial Zone'),
+(4, 'Microsoft Licensing Provider', '022401004', 'licenses@microsoft-provider.example', '2024-07-01', 'Jerusalem', 'Palestine', 'Technology Park'),
+(5, 'R&M Cabling Distributor', '022401005', 'orders@rm-cabling.example', '2024-08-10', 'Nablus', 'Palestine', 'Industrial Area');
 
 -- =========================================================
 -- 6. Warehouses
@@ -144,13 +144,13 @@ INSERT INTO SupplierProduct (supplier_id, product_id, supply_price) VALUES
 INSERT INTO PurchaseInvoice
 (purchase_invoice_id, invoice_date, estimated_arrival, payment, payment_type, amount, supplier_id, warehouse_id) VALUES
 (1, '2026-01-05', '2026-01-10', 21520.00, 'Bank Transfer', 21520.00, 1, 1),
-(2, '2026-01-12', '2026-01-18', 5925.00, 'Bank Transfer', 5925.00, 2, 1),
-(3, '2026-02-03', '2026-02-10', 22500.00, 'Cheque', 22500.00, 3, 2),
+(2, '2026-01-12', '2026-01-18', 3500.00, 'Bank Transfer', 5925.00, 2, 1),
+(3, '2026-02-03', '2026-02-10', 12000.00, 'Cheque', 22500.00, 3, 2),
 (4, '2026-02-18', '2026-02-25', 4370.00, 'Bank Transfer', 4370.00, 4, 1),
-(5, '2026-03-07', '2026-03-12', 3920.00, 'Cash', 3920.00, 5, 2),
+(5, '2026-03-07', '2026-03-12', 0.00, 'Cash', 3920.00, 5, 2),
 (6, '2026-03-20', '2026-03-28', 8760.00, 'Bank Transfer', 8760.00, 1, 3),
-(7, '2026-04-05', '2026-04-12', 8450.00, 'Cheque', 8450.00, 2, 2),
-(8, '2026-04-22', '2026-04-28', 11260.00, 'Bank Transfer', 11260.00, 3, 1);
+(7, '2026-04-05', '2026-04-12', 5000.00, 'Cheque', 8450.00, 2, 2),
+(8, '2026-04-22', '2026-04-28', 9500.00, 'Bank Transfer', 11260.00, 3, 1);
 
 -- =========================================================
 -- 10. Purchase Invoice Items
@@ -194,28 +194,30 @@ INSERT INTO PurchaseInvoiceItem
 INSERT INTO SalesInvoice
 (sales_invoice_id, invoice_date, payment, payment_type, amount, client_id, warehouse_id) VALUES
 (1, '2026-01-20', 2450.00, 'Cash', 2450.00, 1, 1),
-(2, '2026-02-10', 2950.00, 'Bank Transfer', 2950.00, 2, 1),
+(2, '2026-02-10', 2300.00, 'Bank Transfer', 2950.00, 2, 1),
 (3, '2026-02-25', 3950.00, 'Card', 3950.00, 3, 2),
-(4, '2026-03-05', 1160.00, 'Cash', 1160.00, 4, 1),
+(4, '2026-03-05', 600.00, 'Cash', 1160.00, 4, 1),
 (5, '2026-03-18', 1080.00, 'Bank Transfer', 1080.00, 5, 2),
 (6, '2026-03-28', 1870.00, 'Cash', 1870.00, 6, 3),
-(7, '2026-04-12', 1008.00, 'Card', 1008.00, 7, 1),
+(7, '2026-04-12', 500.00, 'Card', 1008.00, 7, 1),
 (8, '2026-04-28', 1940.00, 'Bank Transfer', 1940.00, 8, 2),
-(9, '2026-05-03', 2465.00, 'Cheque', 2465.00, 9, 1),
-(10, '2026-05-10', 2464.00, 'Cash', 2464.00, 10, 3);
+(9, '2026-05-03', 1200.00, 'Cheque', 2465.00, 9, 1),
+(10, '2026-05-10', 0.00, 'Cash', 2464.00, 10, 3);
 
 INSERT INTO SalesPayment
 (sales_payment_id, sales_invoice_id, payment_date, amount, payment_type) VALUES
 (1, 1, '2026-01-20', 2450.00, 'Cash'),
-(2, 2, '2026-02-10', 2950.00, 'Bank Transfer'),
-(3, 3, '2026-02-25', 3950.00, 'Card'),
-(4, 4, '2026-03-05', 1160.00, 'Cash'),
-(5, 5, '2026-03-18', 1080.00, 'Bank Transfer'),
-(6, 6, '2026-03-28', 1870.00, 'Cash'),
-(7, 7, '2026-04-12', 1008.00, 'Card'),
-(8, 8, '2026-04-28', 1940.00, 'Bank Transfer'),
-(9, 9, '2026-05-03', 2465.00, 'Cheque'),
-(10, 10, '2026-05-10', 2464.00, 'Cash');
+(2, 2, '2026-02-10', 1500.00, 'Bank Transfer'),
+(3, 2, '2026-02-22', 800.00, 'Bank Transfer'),
+(4, 3, '2026-02-25', 3950.00, 'Card'),
+(5, 4, '2026-03-05', 600.00, 'Cash'),
+(6, 5, '2026-03-18', 500.00, 'Bank Transfer'),
+(7, 5, '2026-03-25', 580.00, 'Bank Transfer'),
+(8, 6, '2026-03-28', 1870.00, 'Cash'),
+(9, 7, '2026-04-12', 500.00, 'Card'),
+(10, 8, '2026-04-28', 1000.00, 'Bank Transfer'),
+(11, 8, '2026-05-05', 940.00, 'Bank Transfer'),
+(12, 9, '2026-05-03', 1200.00, 'Cheque');
 
 -- =========================================================
 -- 12. Sales Invoice Items

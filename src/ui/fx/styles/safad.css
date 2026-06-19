@@ -1359,9 +1359,9 @@
     -fx-border-color: #c1af9b;
     -fx-border-width: 1 1 1 4;
     -fx-padding: 9px;
-    -fx-min-width: 310px;
-    -fx-pref-width: 340px;
-    -fx-max-width: 380px;
+    -fx-min-width: 260px;
+    -fx-pref-width: 330px;
+    -fx-max-width: 360px;
 }
 
 .ledger-inspector-title {

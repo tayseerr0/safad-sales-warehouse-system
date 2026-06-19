@@ -54,6 +54,7 @@ public class PurchaseReportDAO {
                        s.supplier_name AS 'Supplier',
                        s.phone AS 'Phone',
                        s.email AS 'Email',
+                       s.country AS 'Country',
                        sp.supply_price AS 'Supply Price'
                 FROM SupplierProduct sp
                 JOIN Supplier s ON sp.supplier_id = s.supplier_id
@@ -63,6 +64,33 @@ public class PurchaseReportDAO {
                 """;
 
         return runQuery(sql, productId);
+    }
+
+    public DefaultTableModel getCheapestSupplierForEachProduct() {
+        String sql = """
+                SELECT p.product_id AS 'Product ID',
+                       p.product_name AS 'Product',
+                       s.supplier_id AS 'Supplier ID',
+                       s.supplier_name AS 'Cheapest Supplier',
+                       s.country AS 'Country',
+                       sp.supply_price AS 'Cheapest Supply Price',
+                       ROUND(price_summary.average_supply_price, 2) AS 'Average Supplier Price',
+                       ROUND(price_summary.average_supply_price - sp.supply_price, 2) AS 'Savings vs Average'
+                FROM SupplierProduct sp
+                JOIN Product p ON sp.product_id = p.product_id
+                JOIN Supplier s ON sp.supplier_id = s.supplier_id
+                JOIN (
+                    SELECT product_id,
+                           MIN(supply_price) AS cheapest_supply_price,
+                           AVG(supply_price) AS average_supply_price
+                    FROM SupplierProduct
+                    GROUP BY product_id
+                ) price_summary ON sp.product_id = price_summary.product_id
+                                AND sp.supply_price = price_summary.cheapest_supply_price
+                ORDER BY p.product_name, s.supplier_name
+                """;
+
+        return runQuery(sql);
     }
 
     public DefaultTableModel getPurchaseInvoicesBySupplierAndDate(int supplierId,
@@ -193,13 +221,14 @@ public class PurchaseReportDAO {
         String sql = """
                 SELECT s.supplier_id AS 'Supplier ID',
                        s.supplier_name AS 'Supplier',
+                       s.country AS 'Country',
                        COUNT(DISTINCT pi.purchase_invoice_id) AS 'Invoice Count',
                        SUM(pii.quantity) AS 'Total Quantity',
                        ROUND(SUM(pii.quantity * pii.purchase_price), 2) AS 'Total Purchase Amount'
                 FROM Supplier s
                 JOIN PurchaseInvoice pi ON s.supplier_id = pi.supplier_id
                 JOIN PurchaseInvoiceItem pii ON pi.purchase_invoice_id = pii.purchase_invoice_id
-                GROUP BY s.supplier_id, s.supplier_name
+                GROUP BY s.supplier_id, s.supplier_name, s.country
                 ORDER BY SUM(pii.quantity * pii.purchase_price) DESC
                 """;
 
@@ -211,6 +240,7 @@ public class PurchaseReportDAO {
                 SELECT s.supplier_id AS 'Supplier ID',
                        s.supplier_name AS 'Supplier',
                        s.city AS 'City',
+                       s.country AS 'Country',
                        COUNT(DISTINCT pi.purchase_invoice_id) AS 'Invoice Count',
                        SUM(pii.quantity) AS 'Total Quantity',
                        ROUND(SUM(pii.quantity * pii.purchase_price), 2) AS 'Total Purchase Amount'
@@ -218,7 +248,7 @@ public class PurchaseReportDAO {
                 JOIN PurchaseInvoice pi ON s.supplier_id = pi.supplier_id
                 JOIN PurchaseInvoiceItem pii ON pi.purchase_invoice_id = pii.purchase_invoice_id
                 WHERE pi.invoice_date BETWEEN ? AND ?
-                GROUP BY s.supplier_id, s.supplier_name, s.city
+                GROUP BY s.supplier_id, s.supplier_name, s.city, s.country
                 ORDER BY SUM(pii.quantity * pii.purchase_price) DESC
                 """;
 
@@ -289,6 +319,43 @@ public class PurchaseReportDAO {
                     GROUP BY product_id
                 ) purchases ON p.product_id = purchases.product_id
                 ORDER BY `Average Profit` DESC, p.product_name
+                """;
+
+        return runQuery(sql);
+    }
+
+    public DefaultTableModel getProfitPerProduct() {
+        String sql = """
+                SELECT p.product_id AS 'Product ID',
+                       p.product_name AS 'Product',
+                       COALESCE(sales.quantity_sold, 0) AS 'Quantity Sold',
+                       ROUND(COALESCE(sales.revenue, 0), 2) AS 'Revenue',
+                       ROUND(COALESCE(sales.quantity_sold, 0) * COALESCE(costs.average_purchase_price, 0), 2) AS 'Estimated Cost',
+                       ROUND(COALESCE(sales.revenue, 0)
+                             - (COALESCE(sales.quantity_sold, 0) * COALESCE(costs.average_purchase_price, 0)), 2) AS 'Profit',
+                       CASE
+                           WHEN COALESCE(sales.revenue, 0) > 0
+                           THEN ROUND(((COALESCE(sales.revenue, 0)
+                                  - (COALESCE(sales.quantity_sold, 0) * COALESCE(costs.average_purchase_price, 0)))
+                                  / COALESCE(sales.revenue, 0)) * 100, 2)
+                           ELSE 0
+                       END AS 'Profit Margin %'
+                FROM Product p
+                LEFT JOIN (
+                    SELECT product_id,
+                           SUM(quantity) AS quantity_sold,
+                           SUM(quantity * selling_price) AS revenue
+                    FROM SalesInvoiceItem
+                    GROUP BY product_id
+                ) sales ON p.product_id = sales.product_id
+                LEFT JOIN (
+                    SELECT product_id,
+                           AVG(purchase_price) AS average_purchase_price
+                    FROM PurchaseInvoiceItem
+                    GROUP BY product_id
+                ) costs ON p.product_id = costs.product_id
+                WHERE COALESCE(sales.quantity_sold, 0) > 0
+                ORDER BY `Profit` DESC, p.product_name
                 """;
 
         return runQuery(sql);

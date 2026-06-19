@@ -12,8 +12,10 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.io.File;
@@ -86,6 +88,9 @@ public class FxTheme {
         workspace.getStyleClass().add("ledger-workspace");
         workspace.setCenter(mainSurface);
         workspace.setRight(inspector);
+        if (mainSurface instanceof Region region) {
+            region.setMinWidth(0);
+        }
         BorderPane.setMargin(inspector, new Insets(0, 0, 0, 10));
         return workspace;
     }
@@ -96,6 +101,9 @@ public class FxTheme {
 
         VBox inspector = new VBox(9, titleLabel, content);
         inspector.getStyleClass().add("ledger-inspector");
+        inspector.setMinWidth(260);
+        inspector.setPrefWidth(330);
+        inspector.setMaxWidth(360);
         VBox.setVgrow(content, Priority.ALWAYS);
         return inspector;
     }
@@ -114,6 +122,13 @@ public class FxTheme {
 
         VBox surface = new VBox(8, titleLabel, commandBar, table);
         surface.getStyleClass().add("ledger-surface");
+        surface.setMinWidth(0);
+        if (commandBar instanceof Region region) {
+            region.setMinWidth(0);
+        }
+        if (table instanceof Region region) {
+            region.setMinWidth(0);
+        }
         VBox.setVgrow(table, Priority.ALWAYS);
         return surface;
     }
@@ -150,10 +165,13 @@ public class FxTheme {
         return box;
     }
 
-    public static HBox actionRow(Button... buttons) {
-        HBox row = new HBox(8);
+    public static FlowPane actionRow(Button... buttons) {
+        FlowPane row = new FlowPane(8, 8);
         row.setAlignment(Pos.CENTER_RIGHT);
         row.getChildren().addAll(buttons);
+        for (Button button : buttons) {
+            button.setMaxWidth(Region.USE_PREF_SIZE);
+        }
         return row;
     }
 
@@ -183,19 +201,29 @@ public class FxTheme {
     public static Button primaryButton(String text) {
         Button button = new Button(text);
         button.getStyleClass().add("primary-button");
+        prepareButton(button);
         return button;
     }
 
     public static Button secondaryButton(String text) {
         Button button = new Button(text);
         button.getStyleClass().add("secondary-button");
+        prepareButton(button);
         return button;
     }
 
     public static Button dangerButton(String text) {
         Button button = new Button(text);
         button.getStyleClass().add("danger-button");
+        prepareButton(button);
         return button;
+    }
+
+    private static void prepareButton(Button button) {
+        button.setMinHeight(30);
+        button.setMinWidth(74);
+        button.setPrefWidth(Region.USE_COMPUTED_SIZE);
+        button.setWrapText(true);
     }
 
     public static TextField textField(String prompt) {
@@ -210,6 +238,7 @@ public class FxTheme {
 
     public static void styleTable(TableView<?> table) {
         table.getStyleClass().add("data-table");
+        table.setMinWidth(0);
         table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         FxTableUtil.bindColumnMode(table);
     }

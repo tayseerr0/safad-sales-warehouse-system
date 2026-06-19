@@ -30,6 +30,7 @@ public class SupplierPanel extends JPanel {
     private JTextField emailField;
     private JTextField startingDateField;
     private JTextField cityField;
+    private JTextField countryField;
     private JTextField addressField;
     private JTextField searchField;
 
@@ -80,7 +81,7 @@ public class SupplierPanel extends JPanel {
 
         JLabel title = UIStyle.createTitle("Suppliers");
 
-        JPanel formPanel = new JPanel(new GridLayout(7, 2, 8, 8));
+        JPanel formPanel = new JPanel(new GridLayout(8, 2, 8, 8));
         formPanel.setBackground(UIStyle.PANEL_BACKGROUND);
 
         supplierIdField = new JTextField();
@@ -91,6 +92,7 @@ public class SupplierPanel extends JPanel {
         emailField = new JTextField();
         startingDateField = new JTextField();
         cityField = new JTextField();
+        countryField = new JTextField();
         addressField = new JTextField();
 
         UIStyle.styleTextField(supplierIdField);
@@ -99,6 +101,7 @@ public class SupplierPanel extends JPanel {
         UIStyle.styleTextField(emailField);
         UIStyle.styleTextField(startingDateField);
         UIStyle.styleTextField(cityField);
+        UIStyle.styleTextField(countryField);
         UIStyle.styleTextField(addressField);
 
         startingDateField.setToolTipText("Format: YYYY-MM-DD");
@@ -115,6 +118,8 @@ public class SupplierPanel extends JPanel {
         formPanel.add(startingDateField);
         formPanel.add(new JLabel("City:"));
         formPanel.add(cityField);
+        formPanel.add(new JLabel("Country:"));
+        formPanel.add(countryField);
         formPanel.add(new JLabel("Address:"));
         formPanel.add(addressField);
 
@@ -168,7 +173,7 @@ public class SupplierPanel extends JPanel {
         searchPanel.add(searchField, BorderLayout.CENTER);
         searchPanel.add(searchButtons, BorderLayout.EAST);
 
-        String[] columns = {"ID", "Name", "Phone", "Email", "Starting Date", "City", "Address"};
+        String[] columns = {"ID", "Name", "Phone", "Email", "Starting Date", "City", "Country", "Address"};
         supplierTableModel = TableUtil.createNonEditableTableModel(columns);
         supplierTable = new JTable(supplierTableModel);
         TableUtil.setupTable(supplierTable);
@@ -276,6 +281,7 @@ public class SupplierPanel extends JPanel {
                     supplier.getEmail(),
                     supplier.getStartingDate(),
                     supplier.getCity(),
+                    supplier.getCountry(),
                     supplier.getAddress()
             });
         }
@@ -390,6 +396,7 @@ public class SupplierPanel extends JPanel {
                 emailField.getText().trim(),
                 startingDate,
                 cityField.getText().trim(),
+                countryField.getText().trim(),
                 addressField.getText().trim()
         );
 
@@ -415,7 +422,8 @@ public class SupplierPanel extends JPanel {
         emailField.setText(String.valueOf(supplierTableModel.getValueAt(modelRow, 3)));
         startingDateField.setText(String.valueOf(supplierTableModel.getValueAt(modelRow, 4)));
         cityField.setText(String.valueOf(supplierTableModel.getValueAt(modelRow, 5)));
-        addressField.setText(String.valueOf(supplierTableModel.getValueAt(modelRow, 6)));
+        countryField.setText(String.valueOf(supplierTableModel.getValueAt(modelRow, 6)));
+        addressField.setText(String.valueOf(supplierTableModel.getValueAt(modelRow, 7)));
     }
 
     private void clearSupplierForm() {
@@ -425,6 +433,7 @@ public class SupplierPanel extends JPanel {
         emailField.setText("");
         startingDateField.setText("");
         cityField.setText("");
+        countryField.setText("");
         addressField.setText("");
         supplierTable.clearSelection();
     }

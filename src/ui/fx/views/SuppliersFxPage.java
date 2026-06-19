@@ -42,6 +42,7 @@ public class SuppliersFxPage extends VBox {
     private final TextField emailField = FxTheme.textField("Email");
     private final DatePicker startingDatePicker = new DatePicker(LocalDate.now());
     private final TextField cityField = FxTheme.textField("City");
+    private final TextField countryField = FxTheme.textField("Country");
     private final TextField addressField = FxTheme.textField("Address");
     private final TextField searchField = FxTheme.textField("Search suppliers");
     private final TableView<Supplier> supplierTable = new TableView<>();
@@ -99,7 +100,8 @@ public class SuppliersFxPage extends VBox {
         addRow(form, 3, "Email", emailField);
         addRow(form, 4, "Starting Date", startingDatePicker);
         addRow(form, 5, "City", cityField);
-        addRow(form, 6, "Address", addressField);
+        addRow(form, 6, "Country", countryField);
+        addRow(form, 7, "Address", addressField);
 
         Button add = FxTheme.primaryButton("Add");
         Button update = FxTheme.primaryButton("Update");
@@ -113,7 +115,7 @@ public class SuppliersFxPage extends VBox {
         update.setOnAction(e -> updateSupplier());
         delete.setOnAction(e -> deleteSupplier());
         clear.setOnAction(e -> clearSupplierForm());
-        form.add(FxTheme.actionRow(add, update, delete, clear), 0, 7, 2, 1);
+        form.add(FxTheme.actionRow(add, update, delete, clear), 0, 8, 2, 1);
         return form;
     }
 
@@ -175,9 +177,10 @@ public class SuppliersFxPage extends VBox {
         supplierTable.getColumns().add(FxTableUtil.column("Supplier", Supplier::getSupplierName, 170));
         supplierTable.getColumns().add(FxTableUtil.column("Phone", Supplier::getPhone, 120));
         supplierTable.getColumns().add(FxTableUtil.column("Email", Supplier::getEmail, 180));
-        supplierTable.getColumns().add(FxTableUtil.column("Address", Supplier::getAddress, 180));
         supplierTable.getColumns().add(FxTableUtil.column("Starting Date", Supplier::getStartingDate, 120));
         supplierTable.getColumns().add(FxTableUtil.column("City", Supplier::getCity, 120));
+        supplierTable.getColumns().add(FxTableUtil.column("Country", Supplier::getCountry, 120));
+        supplierTable.getColumns().add(FxTableUtil.column("Address", Supplier::getAddress, 180));
         FxTableUtil.installSearch(supplierTable, suppliers, searchField);
         FxTheme.styleTable(supplierTable);
         supplierTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, supplier) -> {
@@ -243,7 +246,7 @@ public class SuppliersFxPage extends VBox {
         }
 
         Supplier supplier = new Supplier(nameField.getText().trim(), phoneField.getText().trim(), emailField.getText().trim(),
-                startingDatePicker.getValue(), cityField.getText().trim(), addressField.getText().trim());
+                startingDatePicker.getValue(), cityField.getText().trim(), countryField.getText().trim(), addressField.getText().trim());
 
         if (includeId) {
             if (idField.getText().isBlank()) {
@@ -301,6 +304,7 @@ public class SuppliersFxPage extends VBox {
         emailField.setText(supplier.getEmail());
         startingDatePicker.setValue(supplier.getStartingDate());
         cityField.setText(supplier.getCity());
+        countryField.setText(supplier.getCountry());
         addressField.setText(supplier.getAddress());
     }
 
@@ -331,6 +335,7 @@ public class SuppliersFxPage extends VBox {
         emailField.clear();
         startingDatePicker.setValue(LocalDate.now());
         cityField.clear();
+        countryField.clear();
         addressField.clear();
         supplierTable.getSelectionModel().clearSelection();
     }

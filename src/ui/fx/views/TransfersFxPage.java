@@ -75,9 +75,9 @@ public class TransfersFxPage extends VBox {
         VBox editor = new VBox(9,
                 sectionLabel("Transfer"),
                 createForm(),
+                createSaveButtons(),
                 sectionLabel("Current Items"),
-                itemTable,
-                createSaveButtons()
+                itemTable
         );
         editor.getStyleClass().add("workflow-editor");
 
@@ -137,13 +137,17 @@ public class TransfersFxPage extends VBox {
                 FxTheme.toolbar(new Label("Selected Transfer Items")),
                 transferItemsTable
         );
+        VBox.setVgrow(transferTable, Priority.ALWAYS);
+        VBox.setVgrow(transferItemsTable, Priority.ALWAYS);
 
         SplitPane split = new SplitPane(top, bottom);
         split.setOrientation(javafx.geometry.Orientation.VERTICAL);
         split.setDividerPositions(0.58);
+        split.setMinWidth(0);
 
         BorderPane pane = new BorderPane();
         pane.setCenter(FxTheme.ledgerSurface("Transfer Ledger", toolbar, split));
+        pane.setMinWidth(0);
         return pane;
     }
 
@@ -170,7 +174,12 @@ public class TransfersFxPage extends VBox {
         transferTable.getColumns().add(FxTableUtil.column("To Warehouse", transfer -> warehouseName(transfer.getToWarehouseId()), 160));
         FxTableUtil.installSearch(transferTable, transfers, transferSearchField);
         FxTheme.styleTable(transferTable);
-        transferTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, transfer) -> loadTransferItems(transfer));
+        transferTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, transfer) -> {
+            loadTransferItems(transfer);
+            if (transfer != null) {
+                loadSelectedTransferForEdit();
+            }
+        });
         transferTable.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) loadSelectedTransferForEdit();
         });

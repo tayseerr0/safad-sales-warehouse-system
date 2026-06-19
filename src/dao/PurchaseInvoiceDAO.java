@@ -7,7 +7,9 @@ import model.PurchaseInvoiceItem;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PurchaseInvoiceDAO {
 
@@ -70,25 +72,14 @@ public class PurchaseInvoiceDAO {
                 PurchaseInvoice oldInvoice = getPurchaseInvoiceById(conn, updatedInvoice.getPurchaseInvoiceId());
                 if (oldInvoice == null) throw new SQLException("Purchase invoice not found.");
 
-                // Reverse old purchase effect from inventory.
-                for (PurchaseInvoiceItem oldItem : oldInvoice.getItems()) {
-                    if (!inventoryDAO.decreaseStock(conn, oldItem.getProductId(), oldInvoice.getWarehouseId(), oldItem.getQuantity())) {
-                        throw new SQLException("Cannot update invoice because old stock for product ID " + oldItem.getProductId() + " is no longer available.");
-                    }
-                }
-
-                validateWarehouseCapacity(conn, updatedInvoice);
                 updatedInvoice.setAmount(calculateInvoiceAmount(updatedInvoice.getItems()));
+                adjustPurchaseInventoryForUpdate(conn, oldInvoice, updatedInvoice);
 
                 deletePurchaseInvoiceItems(conn, updatedInvoice.getPurchaseInvoiceId());
                 updatePurchaseInvoiceHeader(conn, updatedInvoice);
 
-                // Apply new purchase effect to inventory.
                 for (PurchaseInvoiceItem item : updatedInvoice.getItems()) {
                     insertPurchaseInvoiceItem(conn, updatedInvoice.getPurchaseInvoiceId(), item);
-                    if (!inventoryDAO.increaseStock(conn, item.getProductId(), updatedInvoice.getWarehouseId(), item.getQuantity())) {
-                        throw new SQLException("Failed to increase inventory for product ID: " + item.getProductId());
-                    }
                 }
 
                 conn.commit();
@@ -177,6 +168,77 @@ public class PurchaseInvoiceDAO {
                     + ", current quantity: " + currentQuantity
                     + ", incoming quantity: " + incomingQuantity + ".");
         }
+    }
+
+    private void validateAdditionalWarehouseCapacity(Connection conn, int warehouseId, int additionalQuantity) throws SQLException {
+        if (additionalQuantity <= 0) {
+            return;
+        }
+
+        int capacity = getWarehouseCapacity(conn, warehouseId);
+        int currentQuantity = inventoryDAO.getWarehouseTotalQuantity(conn, warehouseId);
+
+        if (capacity > 0 && currentQuantity + additionalQuantity > capacity) {
+            throw new SQLException("Warehouse capacity exceeded. Capacity: " + capacity
+                    + ", current quantity: " + currentQuantity
+                    + ", additional quantity: " + additionalQuantity + ".");
+        }
+    }
+
+    private void adjustPurchaseInventoryForUpdate(Connection conn,
+                                                  PurchaseInvoice oldInvoice,
+                                                  PurchaseInvoice updatedInvoice) throws SQLException {
+        if (oldInvoice.getWarehouseId() != updatedInvoice.getWarehouseId()) {
+            for (PurchaseInvoiceItem oldItem : oldInvoice.getItems()) {
+                if (!inventoryDAO.decreaseStock(conn, oldItem.getProductId(), oldInvoice.getWarehouseId(), oldItem.getQuantity())) {
+                    throw new SQLException("Cannot move invoice because old stock for product ID " + oldItem.getProductId() + " is no longer available.");
+                }
+            }
+
+            validateWarehouseCapacity(conn, updatedInvoice);
+
+            for (PurchaseInvoiceItem item : updatedInvoice.getItems()) {
+                if (!inventoryDAO.increaseStock(conn, item.getProductId(), updatedInvoice.getWarehouseId(), item.getQuantity())) {
+                    throw new SQLException("Failed to increase inventory for product ID: " + item.getProductId());
+                }
+            }
+            return;
+        }
+
+        Map<Integer, Integer> oldQuantities = quantitiesByProduct(oldInvoice.getItems());
+        Map<Integer, Integer> newQuantities = quantitiesByProduct(updatedInvoice.getItems());
+        Map<Integer, Integer> allProducts = new HashMap<>(oldQuantities);
+        allProducts.putAll(newQuantities);
+
+        int additionalQuantity = 0;
+        for (Integer productId : allProducts.keySet()) {
+            int delta = newQuantities.getOrDefault(productId, 0) - oldQuantities.getOrDefault(productId, 0);
+            if (delta > 0) {
+                additionalQuantity += delta;
+            }
+        }
+        validateAdditionalWarehouseCapacity(conn, updatedInvoice.getWarehouseId(), additionalQuantity);
+
+        for (Integer productId : allProducts.keySet()) {
+            int delta = newQuantities.getOrDefault(productId, 0) - oldQuantities.getOrDefault(productId, 0);
+            if (delta > 0) {
+                if (!inventoryDAO.increaseStock(conn, productId, updatedInvoice.getWarehouseId(), delta)) {
+                    throw new SQLException("Failed to increase inventory for product ID: " + productId);
+                }
+            } else if (delta < 0) {
+                if (!inventoryDAO.decreaseStock(conn, productId, updatedInvoice.getWarehouseId(), -delta)) {
+                    throw new SQLException("Cannot reduce purchased quantity because stock for product ID " + productId + " is no longer available.");
+                }
+            }
+        }
+    }
+
+    private Map<Integer, Integer> quantitiesByProduct(List<PurchaseInvoiceItem> items) {
+        Map<Integer, Integer> quantities = new HashMap<>();
+        for (PurchaseInvoiceItem item : items) {
+            quantities.put(item.getProductId(), quantities.getOrDefault(item.getProductId(), 0) + item.getQuantity());
+        }
+        return quantities;
     }
 
     private int getWarehouseCapacity(Connection conn, int warehouseId) throws SQLException {

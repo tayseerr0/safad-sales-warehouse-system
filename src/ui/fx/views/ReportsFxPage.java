@@ -219,8 +219,10 @@ public class ReportsFxPage extends VBox {
     private BorderPane createAnalysisTab() {
         analysisReportComboBox = new ComboBox<>();
         analysisReportComboBox.getItems().addAll(
+                "Cheapest Supplier for Each Product",
                 "Highest Demand and Supply Products",
-                "Average Selling Price and Profit"
+                "Average Selling Price and Profit",
+                "Profit per Product"
         );
         analysisReportComboBox.getStyleClass().add("report-selector");
         analysisReportComboBox.getSelectionModel().selectFirst();
@@ -338,8 +340,10 @@ public class ReportsFxPage extends VBox {
     }
 
     private boolean analysisReportUsesChart(String report) {
-        return "Highest Demand and Supply Products".equals(report)
-                || "Average Selling Price and Profit".equals(report);
+        return "Cheapest Supplier for Each Product".equals(report)
+                || "Highest Demand and Supply Products".equals(report)
+                || "Average Selling Price and Profit".equals(report)
+                || "Profit per Product".equals(report);
     }
 
     private void setVisible(Node node, boolean visible) {
@@ -445,8 +449,10 @@ public class ReportsFxPage extends VBox {
             DefaultTableModel model;
 
             switch (report) {
+                case "Cheapest Supplier for Each Product" -> model = purchaseReportDAO.getCheapestSupplierForEachProduct();
                 case "Highest Demand and Supply Products" -> model = purchaseReportDAO.getHighestDemandAndSupplyProducts();
                 case "Average Selling Price and Profit" -> model = purchaseReportDAO.getAverageSellingPriceAndProfitPerProduct();
+                case "Profit per Product" -> model = purchaseReportDAO.getProfitPerProduct();
                 default -> model = purchaseReportDAO.getHighestDemandAndSupplyProducts();
             }
 
@@ -517,8 +523,10 @@ public class ReportsFxPage extends VBox {
         if ("Total Purchase Amount per Supplier".equals(report)) return chartFromModel(model, "Supplier", "Total Purchase Amount", 8);
         if ("Purchase Amount per Supplier Between Dates".equals(report)) return chartFromModel(model, "Supplier", "Total Purchase Amount", 8);
         if ("Purchase Amount by Month".equals(report)) return chartFromModel(model, "Month", "Total Purchase Amount", 12);
+        if ("Cheapest Supplier for Each Product".equals(report)) return chartFromModel(model, "Product", "Cheapest Supply Price", 8);
         if ("Highest Demand and Supply Products".equals(report)) return chartFromModel(model, "Product", "Demand / Supply %", 8);
         if ("Average Selling Price and Profit".equals(report)) return chartFromModel(model, "Product", "Average Profit", 8);
+        if ("Profit per Product".equals(report)) return chartFromModel(model, "Product", "Profit", 8);
         return Map.of("Rows", model.getRowCount());
     }
 

@@ -126,11 +126,11 @@ public class SalesFxPage extends VBox {
         VBox editor = new VBox(6,
                 sectionLabel("Invoice"),
                 createInvoiceForm(),
+                createSaveButtons(),
                 sectionLabel("Line Item"),
                 createItemForm(),
                 sectionLabel("Current Items"),
-                itemTable,
-                createSaveButtons()
+                itemTable
         );
         editor.getStyleClass().add("workflow-editor");
 
@@ -207,12 +207,16 @@ public class SalesFxPage extends VBox {
                 FxTheme.toolbar(new Label("Selected Invoice Items")),
                 previousItemsTable
         );
+        VBox.setVgrow(invoiceTable, Priority.ALWAYS);
+        VBox.setVgrow(previousItemsTable, Priority.ALWAYS);
 
         SplitPane split = new SplitPane(top, bottom);
         split.setOrientation(javafx.geometry.Orientation.VERTICAL);
         split.setDividerPositions(0.58);
+        split.setMinWidth(0);
 
         pane.setCenter(FxTheme.ledgerSurface("Sales Invoice Ledger", toolbar, split));
+        pane.setMinWidth(0);
         return pane;
     }
 
@@ -279,6 +283,9 @@ public class SalesFxPage extends VBox {
         invoiceTable.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, invoice) -> {
             loadInvoiceItems(invoice);
             loadPaymentsForInvoice(invoice);
+            if (invoice != null) {
+                loadSelectedInvoiceForEdit();
+            }
         });
         invoiceTable.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) loadSelectedInvoiceForEdit();
@@ -707,7 +714,10 @@ public class SalesFxPage extends VBox {
     }
 
     private void updatePaymentToTotal() {
-        paymentField.setText(totalAmount().toString());
+        String paymentText = paymentField.getText();
+        if (paymentText == null || paymentText.trim().isEmpty()) {
+            paymentField.setText(totalAmount().toString());
+        }
     }
 
     private int originalQuantity(int productId) {
@@ -772,6 +782,7 @@ public class SalesFxPage extends VBox {
         originalItems.clear();
         invoiceDatePicker.setValue(LocalDate.now());
         paymentTypeComboBox.getSelectionModel().selectFirst();
+        paymentField.setText("0.00");
         currentItems.clear();
         updatePaymentToTotal();
         clearItemForm();
