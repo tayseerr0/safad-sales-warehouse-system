@@ -2,7 +2,7 @@ package dao;
 
 import db.DBConnection;
 
-import javax.swing.table.DefaultTableModel;
+import model.ReportTable;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -10,7 +10,7 @@ import java.util.List;
 
 public class PurchaseReportDAO {
 
-    public DefaultTableModel getProductsWithCategoryAndBrand() {
+    public ReportTable getProductsWithCategoryAndBrand() {
         String sql = """
                 SELECT p.product_id AS 'Product ID',
                        p.product_name AS 'Product',
@@ -26,7 +26,7 @@ public class PurchaseReportDAO {
         return runQuery(sql);
     }
 
-    public DefaultTableModel getProductsInWarehouse(int warehouseId) {
+    public ReportTable getProductsInWarehouse(int warehouseId) {
         String sql = """
                 SELECT w.warehouse_name AS 'Warehouse',
                        p.product_id AS 'Product ID',
@@ -47,7 +47,7 @@ public class PurchaseReportDAO {
         return runQuery(sql, warehouseId);
     }
 
-    public DefaultTableModel getSuppliersForProduct(int productId) {
+    public ReportTable getSuppliersForProduct(int productId) {
         String sql = """
                 SELECT p.product_name AS 'Product',
                        s.supplier_id AS 'Supplier ID',
@@ -66,7 +66,7 @@ public class PurchaseReportDAO {
         return runQuery(sql, productId);
     }
 
-    public DefaultTableModel getCheapestSupplierForEachProduct() {
+    public ReportTable getCheapestSupplierForEachProduct() {
         String sql = """
                 SELECT p.product_id AS 'Product ID',
                        p.product_name AS 'Product',
@@ -93,7 +93,7 @@ public class PurchaseReportDAO {
         return runQuery(sql);
     }
 
-    public DefaultTableModel getPurchaseInvoicesBySupplierAndDate(int supplierId,
+    public ReportTable getPurchaseInvoicesBySupplierAndDate(int supplierId,
                                                                   LocalDate fromDate,
                                                                   LocalDate toDate) {
         String sql = """
@@ -116,7 +116,7 @@ public class PurchaseReportDAO {
         return runQuery(sql, supplierId, Date.valueOf(fromDate), Date.valueOf(toDate));
     }
 
-    public DefaultTableModel getPurchaseInvoiceDetails(int invoiceId) {
+    public ReportTable getPurchaseInvoiceDetails(int invoiceId) {
         String sql = """
                 SELECT pi.purchase_invoice_id AS 'Invoice ID',
                        pi.invoice_date AS 'Invoice Date',
@@ -138,7 +138,7 @@ public class PurchaseReportDAO {
         return runQuery(sql, invoiceId);
     }
 
-    public DefaultTableModel getTotalQuantityPurchasedPerProduct() {
+    public ReportTable getTotalQuantityPurchasedPerProduct() {
         String sql = """
                 SELECT p.product_id AS 'Product ID',
                        p.product_name AS 'Product',
@@ -156,7 +156,7 @@ public class PurchaseReportDAO {
         return runQuery(sql);
     }
 
-    public DefaultTableModel getTotalPurchaseAmountPerProduct() {
+    public ReportTable getTotalPurchaseAmountPerProduct() {
         String sql = """
                 SELECT p.product_id AS 'Product ID',
                        p.product_name AS 'Product',
@@ -175,7 +175,7 @@ public class PurchaseReportDAO {
         return runQuery(sql);
     }
 
-    public DefaultTableModel getCurrentStockByWarehouse() {
+    public ReportTable getCurrentStockByWarehouse() {
         String sql = """
                 SELECT w.warehouse_name AS 'Warehouse',
                        p.product_id AS 'Product ID',
@@ -195,7 +195,7 @@ public class PurchaseReportDAO {
         return runQuery(sql);
     }
 
-    public DefaultTableModel getLowStockProducts(int warehouseId) {
+    public ReportTable getLowStockProducts(int warehouseId) {
         String sql = """
                 SELECT w.warehouse_name AS 'Warehouse',
                        p.product_id AS 'Product ID',
@@ -217,7 +217,7 @@ public class PurchaseReportDAO {
         return runQuery(sql, warehouseId);
     }
 
-    public DefaultTableModel getTotalPurchaseAmountPerSupplier() {
+    public ReportTable getTotalPurchaseAmountPerSupplier() {
         String sql = """
                 SELECT s.supplier_id AS 'Supplier ID',
                        s.supplier_name AS 'Supplier',
@@ -235,7 +235,7 @@ public class PurchaseReportDAO {
         return runQuery(sql);
     }
 
-    public DefaultTableModel getTotalPurchaseAmountPerSupplierBetweenDates(LocalDate fromDate, LocalDate toDate) {
+    public ReportTable getTotalPurchaseAmountPerSupplierBetweenDates(LocalDate fromDate, LocalDate toDate) {
         String sql = """
                 SELECT s.supplier_id AS 'Supplier ID',
                        s.supplier_name AS 'Supplier',
@@ -255,7 +255,7 @@ public class PurchaseReportDAO {
         return runQuery(sql, Date.valueOf(fromDate), Date.valueOf(toDate));
     }
 
-    public DefaultTableModel getPurchaseAmountByMonth() {
+    public ReportTable getPurchaseAmountByMonth() {
         String sql = """
                 SELECT DATE_FORMAT(pi.invoice_date, '%Y-%m') AS 'Month',
                        COUNT(DISTINCT pi.purchase_invoice_id) AS 'Invoice Count',
@@ -270,7 +270,7 @@ public class PurchaseReportDAO {
         return runQuery(sql);
     }
 
-    public DefaultTableModel getHighestDemandAndSupplyProducts() {
+    public ReportTable getHighestDemandAndSupplyProducts() {
         String sql = """
                 SELECT p.product_id AS 'Product ID',
                        p.product_name AS 'Product',
@@ -300,7 +300,7 @@ public class PurchaseReportDAO {
         return runQuery(sql);
     }
 
-    public DefaultTableModel getAverageSellingPriceAndProfitPerProduct() {
+    public ReportTable getAverageSellingPriceAndProfitPerProduct() {
         String sql = """
                 SELECT p.product_id AS 'Product ID',
                        p.product_name AS 'Product',
@@ -324,7 +324,7 @@ public class PurchaseReportDAO {
         return runQuery(sql);
     }
 
-    public DefaultTableModel getProfitPerProduct() {
+    public ReportTable getProfitPerProduct() {
         String sql = """
                 SELECT p.product_id AS 'Product ID',
                        p.product_name AS 'Product',
@@ -424,7 +424,7 @@ public class PurchaseReportDAO {
         return options;
     }
 
-    private DefaultTableModel runQuery(String sql, Object... params) {
+    private ReportTable runQuery(String sql, Object... params) {
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -438,11 +438,11 @@ public class PurchaseReportDAO {
 
         } catch (SQLException e) {
             System.out.println("Report query error: " + e.getMessage());
-            return new DefaultTableModel(new String[]{"Error"}, 0);
+            return new ReportTable(new String[]{"Error"}, 0);
         }
     }
 
-    private DefaultTableModel buildTableModel(ResultSet rs) throws SQLException {
+    private ReportTable buildTableModel(ResultSet rs) throws SQLException {
         ResultSetMetaData metaData = rs.getMetaData();
         int columnCount = metaData.getColumnCount();
 
@@ -451,12 +451,7 @@ public class PurchaseReportDAO {
             columns[i - 1] = metaData.getColumnLabel(i);
         }
 
-        DefaultTableModel model = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
-            }
-        };
+        ReportTable model = new ReportTable(columns, 0);
 
         while (rs.next()) {
             Object[] row = new Object[columnCount];
